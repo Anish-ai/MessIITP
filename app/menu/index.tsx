@@ -8,6 +8,7 @@ import DayPickerModal from '@/components/DayPickerModal';
 import api from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 const MenuScreen = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -18,6 +19,10 @@ const MenuScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
   const [messId, setMessId] = useState<number | null>(null);
+  const [userEmail, setUserEmail] = useState('');
+
+  const adminEmails = ['anish_2301mc40@iitp.ac.in', 'admin2@example.com'];
+  const crEmails = ['cr1@example.com', 'cr2@example.com'];
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
@@ -36,6 +41,7 @@ const MenuScreen = () => {
           const student = response.data;
           setUserName(student.name);
           setMessId(student.mess_id);
+          setUserEmail(student.email);
           const { meal, day } = getCurrentMeal();
           setCurrentDay(day);
           setCurrentMeal(meal);
@@ -47,6 +53,16 @@ const MenuScreen = () => {
 
     fetchStudentDetails();
   }, []);
+
+  const handleSettingsPress = () => {
+    if (adminEmails.includes(userEmail)) {
+      router.push('/settings/AdminSettings'); // Navigate to admin settings
+    } else if (crEmails.includes(userEmail)) {
+      router.push('/settings/CRSettings'); // Navigate to CR settings
+    } else {
+      router.push('/settings/UserSettings'); // Navigate to normal user settings
+    }
+  };
 
   // Fetch menu when currentDay or messId changes
   useEffect(() => {
@@ -99,6 +115,8 @@ const MenuScreen = () => {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
+    const currentDay = getCurrentDay();
+
 
     if (hours >= 7 && hours < 10 && (hours !== 7 || minutes >= 30)) {
       return { meal: 'breakfast', day: currentDay };
@@ -110,17 +128,19 @@ const MenuScreen = () => {
       return { meal: 'dinner', day: currentDay };
     } else {
       // Outside meal hours, show the next meal
-      if (hours >= 22 || hours < 7) {
+      if (hours >= 14 && hours < 16) {
+        return { meal: 'snacks', day: currentDay };
+      } else if (hours >= 18 && hours < 20) {
+        return { meal: 'dinner', day: currentDay };
+      } else if (hours >= 0 && hours < 7) {
+        return { meal: 'breakfast', day: currentDay };
+      } else if (hours >= 22 && hours < 24) {
         const nextDay = new Date(now);
         nextDay.setDate(now.getDate() + 1);
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const nextDayName = days[nextDay.getDay()];
         return { meal: 'breakfast', day: nextDayName };
-      } else if (hours >= 14 && hours < 16) {
-        return { meal: 'snacks', day: currentDay };
-      } else if (hours >= 18 && hours < 20) {
-        return { meal: 'dinner', day: currentDay };
-      }
+      } 
     }
     return { meal: 'breakfast', day: currentDay }; // Default
   };
@@ -136,6 +156,11 @@ const MenuScreen = () => {
       {/* Refresh Button */}
       <TouchableOpacity style={styles.refreshButton} onPress={fetchMenu}>
         <Ionicons name="refresh" size={24} color={tintColor} />
+      </TouchableOpacity>
+
+      {/* Settings Button */}
+      <TouchableOpacity style={styles.settingsButton} onPress={handleSettingsPress}>
+        <Ionicons name="settings" size={24} color={tintColor} />
       </TouchableOpacity>
 
       {/* Loading State */}
@@ -181,6 +206,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
+    padding: 8,
+    borderRadius: 20,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 16,
+    right: 60, // Adjust the position as needed
     padding: 8,
     borderRadius: 20,
   },
