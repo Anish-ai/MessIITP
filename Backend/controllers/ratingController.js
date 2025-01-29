@@ -1,3 +1,4 @@
+// Backend/controllers/ratingController.js
 const db = require('../config/db');
 
 const submitRating = async (req, res) => {

@@ -20,6 +20,8 @@ const MenuScreen = () => {
   const [userName, setUserName] = useState('');
   const [messId, setMessId] = useState<number | null>(null);
   const [userEmail, setUserEmail] = useState('');
+  const [studentId, setStudentId] = useState<number | null>(null);
+  const [mealId, setMealId] = useState<number | null>(null);
 
   const adminEmails = ['anish_2301mc40@iitp.ac.in', 'admin2@example.com'];
   const crEmails = ['cr1@example.com', 'cr2@example.com'];
@@ -42,9 +44,12 @@ const MenuScreen = () => {
           setUserName(student.name);
           setMessId(student.mess_id);
           setUserEmail(student.email);
+          setStudentId(student.student_id);
           const { meal, day } = getCurrentMeal();
           setCurrentDay(day);
           setCurrentMeal(meal);
+          console.log('meal:', meal);
+          console.log('day:', day);
         } catch (error) {
           console.error('Failed to fetch student details:', error);
         }
@@ -80,11 +85,12 @@ const MenuScreen = () => {
 
       for (const mealType of mealTypes) {
         const mealsResponse = await api.get('/meals', {
-          params: { mess_id: messId, day: currentDay, meal_type: mealType },
+          params: { mess_id: messId, day: currentDay, meal_type: currentMeal },
         });
 
         if (mealsResponse.data.length > 0) {
           const mealId = mealsResponse.data[0].meal_id;
+          setMealId(mealId); // Set the meal_id for the current meal
           const dishesResponse = await api.get('/meal-dishes', {
             params: { meal_id: mealId },
           });
@@ -172,9 +178,11 @@ const MenuScreen = () => {
       {/* Current Meal Card */}
       {!loading && !error && (
         <MealCard
-          mealType={currentMeal}
-          dishes={fullMenu[currentMeal] || []}
-        />
+        mealType={currentMeal}
+        dishes={fullMenu[currentMeal] || []}
+        mealId={mealId}
+        studentId={studentId}
+      />
       )}
 
       {/* See Full Mess Menu Button */}

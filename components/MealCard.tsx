@@ -1,6 +1,5 @@
-// components/MealCard.tsx
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../api'; // Adjust the path as necessary
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import RatingModal from './RatingModal';
 
@@ -12,10 +11,20 @@ interface Dish {
 interface MealCardProps {
   mealType: string;
   dishes: Dish[];
+  mealId: number | null;
+  studentId: number | null;
 }
 
-const MealCard: React.FC<MealCardProps> = ({ mealType, dishes }) => {
+const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (mealId) {
+      getAvgRating();
+    }
+  }, [mealId]);
+
   const handleRatePress = () => {
     setIsModalVisible(true);
   };
@@ -24,23 +33,40 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes }) => {
     setIsModalVisible(false);
   };
 
+  const getAvgRating = async () => {
+    try {
+      const response = await api.get('/ratings/getRatingsByMeal', {
+        params: { meal_id: mealId },
+      });
+      setAvgRating(response.data.averageRating);
+      console.log('Average rating:', response.data.averageRating);
+    } catch (error) {
+      console.error('Failed to fetch average rating:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.mealType}>{`Today's ${mealType}`}</Text>
+      <Text>
+        Average rating: {avgRating !== null ? avgRating : 'Loading...'}
+      </Text>
       {dishes.map((dish, index) => (
         <Text key={index} style={[styles.dishName, dish.type === 'nonveg' && styles.nonVegText]}>
           {dish.dish_name}
         </Text>
       ))}
-      <View style={styles.rateButton}>
-        <TouchableOpacity onPress={handleRatePress}>
-          <Text style={styles.rateText} >Rate</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity onPress={handleRatePress}>
+        <View style={styles.rateButton}>
+          <Text style={styles.rateText}>Rate</Text>
+        </View>
+      </TouchableOpacity>
 
       <RatingModal
         visible={isModalVisible}
         onClose={closeModal}
+        mealId={mealId}
+        studentId={studentId}
       />
     </View>
   );
