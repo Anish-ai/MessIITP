@@ -1,7 +1,8 @@
 // components/MealCard.tsx
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import RatingModal from './RatingModal';
 
 interface Dish {
   dish_name: string;
@@ -14,6 +15,15 @@ interface MealCardProps {
 }
 
 const MealCard: React.FC<MealCardProps> = ({ mealType, dishes }) => {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const handleRatePress = () => {
+    setIsModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setIsModalVisible(false);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.mealType}>{`Today's ${mealType}`}</Text>
@@ -22,6 +32,16 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes }) => {
           {dish.dish_name}
         </Text>
       ))}
+      <View style={styles.rateButton}>
+        <TouchableOpacity onPress={handleRatePress}>
+          <Text style={styles.rateText} >Rate</Text>
+        </TouchableOpacity>
+      </View>
+
+      <RatingModal
+        visible={isModalVisible}
+        onClose={closeModal}
+      />
     </View>
   );
 };
@@ -44,6 +64,18 @@ const styles = StyleSheet.create({
   },
   nonVegText: {
     color: 'red',
+  },
+  rateButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#007BFF',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  rateText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
