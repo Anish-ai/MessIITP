@@ -38,6 +38,9 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
       const response = await api.get('/ratings/getRatingsByMeal', {
         params: { meal_id: mealId },
       });
+      if (!response.data.averageRating) {
+        setAvgRating(0);
+      }
       setAvgRating(response.data.averageRating);
       console.log('Average rating:', response.data.averageRating);
     } catch (error) {

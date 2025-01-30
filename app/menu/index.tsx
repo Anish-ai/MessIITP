@@ -1,7 +1,7 @@
 // app/menu/index.tsx
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import MealCard from '@/components/MealCard';
 import DayPickerModal from '@/components/DayPickerModal';
@@ -60,12 +60,26 @@ const MenuScreen = () => {
   }, []);
 
   const handleSettingsPress = () => {
+    if (!studentId) {
+      Alert.alert('Error', 'Student ID not found.');
+      return;
+    }
+  
     if (adminEmails.includes(userEmail)) {
-      router.push('/settings/AdminSettings'); // Navigate to admin settings
+      router.push({
+        pathname: '/settings/AdminSettings',
+        params: { student_id: studentId }, // Pass student_id as a parameter
+      });
     } else if (crEmails.includes(userEmail)) {
-      router.push('/settings/CRSettings'); // Navigate to CR settings
+      router.push({
+        pathname: '/settings/CRSettings',
+        params: { student_id: studentId }, // Pass student_id as a parameter
+      });
     } else {
-      router.push('/settings/UserSettings'); // Navigate to normal user settings
+      router.push({
+        pathname: '/settings/UserSettings',
+        params: { student_id: studentId }, // Pass student_id as a parameter
+      });
     }
   };
 

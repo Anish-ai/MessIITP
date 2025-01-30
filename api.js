@@ -1,9 +1,9 @@
 //api.js
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-    baseURL: 'http://10.16.2.153:5000/api', // Replace with your backend URL
+    baseURL: 'https://messiitp.onrender.com/api', // Replace with your backend URL
 });
 
 api.interceptors.request.use(
