@@ -10,17 +10,16 @@ interface RatingModalProps {
   onClose: () => void;
   mealId: number | null;
   studentId: number | null;
+  onRatingSubmit: () => void; // Add this line
 }
 
-const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, studentId }) => {
-  const [isModalVisible, setIsModalVisible] = useState(visible);
+const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, studentId, onRatingSubmit }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ratingScore, setRatingScore] = useState<number>(3);
   const [feedbackText, setFeedbackText] = useState<string>('');
 
   const closeModal = () => {
-    setIsModalVisible(false);
     onClose();
   };
 
@@ -29,8 +28,6 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
       setError('Meal ID or Student ID is missing');
       return;
     }
-    console.log('mealId:', mealId);
-    console.log('studentId:', studentId);
 
     setLoading(true);
     setError(null);
@@ -41,10 +38,11 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
         meal_id: mealId,
         rating_score: ratingScore,
         feedback_text: feedbackText,
-        rating_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+        rating_date: new Date().toISOString().split('T')[0],
       });
 
       if (response.status === 201) {
+        onRatingSubmit(); // Call the callback function
         closeModal();
       } else {
         setError('Failed to submit rating');
@@ -94,7 +92,6 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
             <Text style={styles.submitButtonText}>Submit Rating</Text>
           </TouchableOpacity>
 
-          {/* Close Button */}
           <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>

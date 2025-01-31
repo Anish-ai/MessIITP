@@ -1,5 +1,3 @@
-// components/DayPickerModal.tsx
-
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -11,35 +9,79 @@ interface DayPickerModalProps {
   messId: string;
 }
 
+interface Dish {
+  dish_name: string;
+  type: string;
+}
+
+interface MealData {
+  meal_id: number;
+  dishes: Dish[];
+  avgRating?: number | null;
+}
+
 const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messId }) => {
   const [selectedDay, setSelectedDay] = useState('Monday');
-  const [fullMenu, setFullMenu] = useState<{ [key: string]: { dish_name: string; type: string }[] }>({});
+  const [fullMenu, setFullMenu] = useState<{ [key: string]: MealData }>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  // Fetch full mess menu for the selected day
   const fetchFullMenu = async (day: string) => {
     setLoading(true);
     setError(null);
     try {
       const mealTypes = ['breakfast', 'lunch', 'snacks', 'dinner'];
-      const fullMenuData: { [key: string]: { dish_name: string; type: string }[] } = {};
+      const fullMenuData: { [key: string]: MealData } = {};
 
       for (const mealType of mealTypes) {
         const mealsResponse = await api.get('/meals', {
           params: { mess_id: messId, day: day, meal_type: mealType },
         });
 
-        if (mealsResponse.data.length > 0) {
+        console.log('Meals Response:', mealsResponse.data); // Log meals response
+
+        if (mealsResponse.data && mealsResponse.data.length > 0) {
           const mealId = mealsResponse.data[0].meal_id;
           const dishesResponse = await api.get('/meal-dishes', {
             params: { meal_id: mealId },
           });
-          fullMenuData[mealType] = dishesResponse.data;
+
+          console.log('Dishes Response:', dishesResponse.data); // Log dishes response
+
+          // Ensure dishesResponse.data is an array
+          const dishes = Array.isArray(dishesResponse.data) ? dishesResponse.data : [];
+
+          let avgRating: number | null = null; // Default to null if no rating data
+          try {
+            // Fetch average rating for the meal
+            const ratingResponse = await api.get('/ratings/getRatingsByMeal', {
+              params: { meal_id: mealId },
+            });
+
+            console.log('Rating Response:', ratingResponse.data); // Log rating response
+
+            // Ensure ratingResponse.data.averageRating is a number
+            if (typeof ratingResponse.data?.averageRating === 'number') {
+              avgRating = ratingResponse.data.averageRating;
+            }
+          } catch (ratingError) {
+            console.error('Failed to fetch average rating:', ratingError);
+            // If the rating endpoint fails, keep avgRating as null
+          }
+
+          fullMenuData[mealType] = {
+            meal_id: mealId,
+            dishes: dishes,
+            avgRating: avgRating, // Can be null if no rating data
+          };
         } else {
-          fullMenuData[mealType] = [];
+          fullMenuData[mealType] = {
+            meal_id: -1,
+            dishes: [],
+            avgRating: null, // No rating data
+          };
         }
       }
 
@@ -52,7 +94,6 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
     }
   };
 
-  // Fetch full menu when day changes
   useEffect(() => {
     if (visible) {
       fetchFullMenu(selectedDay);
@@ -74,19 +115,18 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
             ))}
           </Picker>
 
-          {/* Full Mess Menu Table */}
           {loading ? (
             <ActivityIndicator size="large" color="#007BFF" />
           ) : error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : (
             <ScrollView>
-              {Object.entries(fullMenu).map(([mealType, dishes]) => (
+              {Object.entries(fullMenu).map(([mealType, mealData]) => (
                 <View key={mealType} style={styles.mealSection}>
                   <Text style={styles.mealTypeHeader}>
-                    {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+                    {mealType.charAt(0).toUpperCase() + mealType.slice(1)} (Avg Rating: {mealData.avgRating !== undefined && mealData.avgRating !== null ? mealData.avgRating.toFixed(1) : 'N/A'})
                   </Text>
-                  {dishes.map((dish, index) => (
+                  {mealData.dishes && mealData.dishes.map((dish, index) => (
                     <Text key={index} style={[styles.dishName, dish.type === 'nonveg' && styles.nonVegText]}>
                       {dish.dish_name}
                     </Text>
@@ -96,7 +136,6 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
             </ScrollView>
           )}
 
-          {/* Close Button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>

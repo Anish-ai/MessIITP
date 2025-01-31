@@ -1,6 +1,6 @@
 // app/menu/index.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import MealCard from '@/components/MealCard';
@@ -8,7 +8,7 @@ import DayPickerModal from '@/components/DayPickerModal';
 import api from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 const MenuScreen = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -23,7 +23,7 @@ const MenuScreen = () => {
   const [studentId, setStudentId] = useState<number | null>(null);
   const [mealId, setMealId] = useState<number | null>(null);
 
-  const adminEmails = ['anish_2301mc40@iitp.ac.in', 'admin2@example.com'];
+  const adminEmails = ['anish_2301mc40@iitp.ac.in', 'Jatin_2301ec12@iitp.ac.in'];
   const crEmails = ['cr1@example.com', 'cr2@example.com'];
 
   // Theme colors
@@ -57,6 +57,45 @@ const MenuScreen = () => {
     };
 
     fetchStudentDetails();
+  }, []);
+
+  const fetchStudentDetails = async () => {
+    const studentId = await AsyncStorage.getItem('student_id');
+    if (studentId) {
+      try {
+        const response = await api.get(`/students/${studentId}`);
+        const student = response.data;
+        setUserName(student.name);
+        
+        // Check if mess_id has changed
+        if (student.mess_id !== messId) {
+          setMessId(student.mess_id);
+          // Fetch menu for the new mess
+          fetchMenu();
+        }
+        
+        setUserEmail(student.email);
+        setStudentId(student.student_id);
+        
+        const { meal, day } = getCurrentMeal();
+        setCurrentDay(day);
+        setCurrentMeal(meal);
+      } catch (error) {
+        console.error('Failed to fetch student details:', error);
+      }
+    }
+  };
+
+  // Use useFocusEffect to refresh student details when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchStudentDetails();
+    }, [])
+  );
+
+  // Modify the existing useEffect to remove the initial fetch
+  useEffect(() => {
+    // If you want to keep any initial setup, add it here
   }, []);
 
   const handleSettingsPress = () => {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Keyboard } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
@@ -19,6 +19,9 @@ const ChangeMenuPage = () => {
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const mealTypes = ['breakfast', 'lunch', 'snacks', 'dinner'];
+
+    // Add ref to your TextInput
+    const inputRef = useRef<TextInput>(null);
 
     // Fetch mess_id from student_id
     useEffect(() => {
@@ -253,11 +256,17 @@ const ChangeMenuPage = () => {
 
             {/* Suggestions */}
             {suggestions.length > 0 && (
-                <View style={styles.suggestionsContainer}>
+                <ScrollView style={styles.suggestionsContainer}
+
+                    keyboardShouldPersistTaps="always"
+                    onStartShouldSetResponder={() => true}
+                >
                     {suggestions.map((suggestion, index) => (
                         <TouchableOpacity
                             key={index}
                             style={styles.suggestionItem}
+                            focusable={false}  // Add this
+                            importantForAccessibility="no"  // Add this
                             onPress={() => {
                                 setNewDish(suggestion.dish_name);
                                 setSuggestions([]);
@@ -266,7 +275,7 @@ const ChangeMenuPage = () => {
                             <Text style={styles.suggestionText}>{suggestion.dish_name}</Text>
                         </TouchableOpacity>
                     ))}
-                </View>
+                </ScrollView>
             )}
 
             {/* Add New Dish */}
@@ -276,6 +285,8 @@ const ChangeMenuPage = () => {
                     placeholder="Add a new dish"
                     value={newDish}
                     onChangeText={handleInputChange}
+                    autoCapitalize="words"
+                    autoCorrect={false}
                 />
                 <TouchableOpacity style={styles.addButton} onPress={handleAddDish}>
                     <Ionicons name="add-circle" size={24} color="green" />

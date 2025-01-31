@@ -15,4 +15,13 @@ const registerMess = async (req, res) => {
     }
 };
 
-module.exports = { registerMess };
+const getAllMesses = async (req, res) => {
+    try {
+        const [messes] = await db.query('SELECT mess_id, mess_name FROM mess');
+        res.json(messes);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+module.exports = { registerMess, getAllMesses };

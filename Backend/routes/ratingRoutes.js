@@ -5,5 +5,6 @@ const router = express.Router();
 
 router.post('/submit', ratingController.submitRating);
 router.get('/getRatingsByMeal', ratingController.getRatingsByMeal);
+router.get('/getRatingByMealAndDate', ratingController.getRatingByMealAndDate);
 
 module.exports = router;
