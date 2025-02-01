@@ -17,7 +17,7 @@ export const Colors = {
   },
   dark: {
     text: '#ECEDEE', // Light gray for text
-    background: '#171715', // Dark background
+    background: '#222222', // Dark background
     tint: tintColorDark, // Darker orange for icons and accents
     icon: '#9BA1A6', // Gray for inactive icons
     tabIconDefault: '#9BA1A6', // Gray for inactive tab icons

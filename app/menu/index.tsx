@@ -50,6 +50,17 @@ const MenuScreen = () => {
           setCurrentMeal(meal);
           console.log('meal:', meal);
           console.log('day:', day);
+          // set meal id here
+          const mealsResponse = await api.get('/meals', {
+            params: { mess_id: student.mess_id, day: day, meal_type: meal },
+          });
+          if (mealsResponse.data.length > 0) {
+            const mealId = mealsResponse.data[0].meal_id;
+            setMealId(mealId);
+          } else {
+            console.log('No meals found for', meal);
+            setMealId(null);
+          }
         } catch (error) {
           console.error('Failed to fetch student details:', error);
         }
@@ -58,6 +69,25 @@ const MenuScreen = () => {
 
     fetchStudentDetails();
   }, []);
+
+  const handleMealChange = async () => {
+    const studentId = await AsyncStorage.getItem('student_id');
+    if (studentId) {
+      try {
+        const response = await api.get(`/students/${studentId}`);
+        const student = response.data;
+        
+        // Check if mess_id has changed
+        if (student.mess_id !== messId) {
+          setMessId(student.mess_id);
+          // Fetch menu for the new mess
+          fetchMenu();
+        }
+      } catch (error) {
+        console.error('Failed to fetch student details:', error);
+      }
+    }
+  };
 
   const fetchStudentDetails = async () => {
     const studentId = await AsyncStorage.getItem('student_id');
@@ -78,8 +108,22 @@ const MenuScreen = () => {
         setStudentId(student.student_id);
         
         const { meal, day } = getCurrentMeal();
+        console.log('meal:', meal);
+        console.log('day:', day);
         setCurrentDay(day);
         setCurrentMeal(meal);
+        // set meal id here
+        const mealsResponse = await api.get('/meals', {
+          params: { mess_id: student.mess_id, day: day, meal_type: meal },
+        });
+        if (mealsResponse.data.length > 0) {
+          const mealId = mealsResponse.data[0].meal_id;
+          console.log('mealId:', mealId);
+          setMealId(mealId);
+        } else {
+          console.log('No meals found for', meal);
+          setMealId(null);
+        }
       } catch (error) {
         console.error('Failed to fetch student details:', error);
       }
@@ -90,6 +134,7 @@ const MenuScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchStudentDetails();
+      fetchMenu();
     }, [])
   );
 
@@ -143,7 +188,6 @@ const MenuScreen = () => {
 
         if (mealsResponse.data.length > 0) {
           const mealId = mealsResponse.data[0].meal_id;
-          setMealId(mealId); // Set the meal_id for the current meal
           const dishesResponse = await api.get('/meal-dishes', {
             params: { meal_id: mealId },
           });
@@ -187,7 +231,7 @@ const MenuScreen = () => {
       return { meal: 'dinner', day: currentDay };
     } else {
       // Outside meal hours, show the next meal
-      if (hours >= 14 && hours < 16) {
+      if (hours >= 14 && hours < 18) {
         return { meal: 'snacks', day: currentDay };
       } else if (hours >= 18 && hours < 20) {
         return { meal: 'dinner', day: currentDay };
@@ -231,11 +275,11 @@ const MenuScreen = () => {
       {/* Current Meal Card */}
       {!loading && !error && (
         <MealCard
-        mealType={currentMeal}
-        dishes={fullMenu[currentMeal] || []}
-        mealId={mealId}
-        studentId={studentId}
-      />
+          mealType={currentMeal}
+          dishes={fullMenu[currentMeal] || []}
+          mealId={mealId}
+          studentId={studentId}
+        />
       )}
 
       {/* See Full Mess Menu Button */}
