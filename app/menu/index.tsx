@@ -124,6 +124,27 @@ const MenuScreen = () => {
           console.log('No meals found for', meal);
           setMealId(null);
         }
+        //set full menu here
+        const mealTypes = ['breakfast', 'lunch', 'snacks', 'dinner'];
+        const fullMenuData: { [key: string]: { dish_name: string; type: string }[] } = {};
+
+        for (const mealType of mealTypes) {
+          const mealsResponse = await api.get('/meals', {
+            params: { mess_id: student.mess_id, day: day, meal_type: mealType },
+          });
+
+          if (mealsResponse.data.length > 0) {
+            const mealId = mealsResponse.data[0].meal_id;
+            const dishesResponse = await api.get('/meal-dishes', {
+              params: { meal_id: mealId },
+            });
+            fullMenuData[mealType] = dishesResponse.data;
+          } else {
+            fullMenuData[mealType] = [];
+          }
+        }
+
+        setFullMenu(fullMenuData);
       } catch (error) {
         console.error('Failed to fetch student details:', error);
       }

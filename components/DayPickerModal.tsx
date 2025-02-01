@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { useThemeColor } from '../hooks/useThemeColor';
+import RatingDonut from './RatingDonut';
 import api from '../api';
 
 interface DayPickerModalProps {
@@ -21,6 +23,11 @@ interface MealData {
 }
 
 const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messId }) => {
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const tintColor = useThemeColor({}, 'tint');
+  const borderColor = useThemeColor({}, 'border');
+  const lessDarkBackground = useThemeColor({}, 'lessDarkBackground');
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [fullMenu, setFullMenu] = useState<{ [key: string]: MealData }>({});
   const [loading, setLoading] = useState(false);
@@ -103,31 +110,67 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
   return (
     <Modal visible={visible} transparent={true} animationType="slide">
       <View style={styles.modalContainer}>
-        <View style={[styles.modalContent, { backgroundColor: '#FFF' }]}>
-          <Text style={styles.modalTitle}>Select Day</Text>
-          <Picker
-            selectedValue={selectedDay}
-            onValueChange={(itemValue) => setSelectedDay(itemValue)}
-            style={styles.picker}
-          >
-            {days.map((day) => (
-              <Picker.Item key={day} label={day} value={day} />
-            ))}
-          </Picker>
+        <View style={[
+          styles.modalContent, 
+          { 
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
+            borderWidth: 1,
+          }
+        ]}>
+          <Text style={[styles.modalTitle, { color: textColor }]}>Select Day</Text>
+          
+          <View style={[styles.pickerContainer, { backgroundColor: lessDarkBackground, borderColor }]}>
+            <Picker
+              selectedValue={selectedDay}
+              onValueChange={(itemValue) => setSelectedDay(itemValue)}
+              style={[styles.picker, { color: textColor }]}
+              dropdownIconColor={textColor}
+              mode='dropdown'
+            >
+              {days.map((day) => (
+                <Picker.Item 
+                  key={day} 
+                  label={day} 
+                  value={day}
+                  color={textColor}
+                  style={{ backgroundColor: lessDarkBackground }}
+                />
+              ))}
+            </Picker>
+          </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#007BFF" />
+            <ActivityIndicator size="large" color={tintColor} />
           ) : error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : (
-            <ScrollView>
+            <ScrollView style={styles.menuScrollView}>
               {Object.entries(fullMenu).map(([mealType, mealData]) => (
-                <View key={mealType} style={styles.mealSection}>
-                  <Text style={styles.mealTypeHeader}>
-                    {mealType.charAt(0).toUpperCase() + mealType.slice(1)} (Avg Rating: {mealData.avgRating !== undefined && mealData.avgRating !== null ? mealData.avgRating.toFixed(1) : 'N/A'})
-                  </Text>
+                <View key={mealType} style={[
+                  styles.mealSection,
+                  { 
+                    backgroundColor: lessDarkBackground,
+                    borderColor: borderColor 
+                  }
+                ]}>
+                  <View style={styles.mealHeader}>
+                    <Text style={[styles.mealTypeHeader, { color: textColor }]}>
+                      {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+                    </Text>
+                    <View style={styles.ratingContainer}>
+                      <RatingDonut rating={mealData.avgRating ?? null} size={35} />
+                    </View>
+                  </View>
                   {mealData.dishes && mealData.dishes.map((dish, index) => (
-                    <Text key={index} style={[styles.dishName, dish.type === 'nonveg' && styles.nonVegText]}>
+                    <Text 
+                      key={index} 
+                      style={[
+                        styles.dishName, 
+                        { color: textColor },
+                        dish.type === 'nonveg' && styles.nonVegText
+                      ]}
+                    >
                       {dish.dish_name}
                     </Text>
                   ))}
@@ -136,7 +179,10 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
             </ScrollView>
           )}
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity 
+            style={[styles.closeButton, { backgroundColor: tintColor }]} 
+            onPress={onClose}
+          >
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
         </View>
@@ -155,8 +201,9 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 20,
@@ -164,36 +211,56 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  picker: {
+  pickerContainer: {
+    borderRadius: 8,
+    borderWidth: 1,
     marginBottom: 16,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+  },
+  menuScrollView: {
+    marginBottom: 8,
   },
   mealSection: {
-    marginBottom: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  mealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   mealTypeHeader: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+  },
+  ratingContainer: {
+    marginLeft: 8,
   },
   dishName: {
     fontSize: 16,
     marginBottom: 4,
+    paddingLeft: 8,
   },
   nonVegText: {
-    color: 'red',
+    color: '#ff4444',
   },
   errorText: {
-    color: 'red',
+    color: '#ff4444',
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 16,
   },
   closeButton: {
-    backgroundColor: '#FF3B30',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 8,
   },
   closeButtonText: {
     color: '#FFF',

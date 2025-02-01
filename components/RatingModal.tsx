@@ -1,8 +1,6 @@
-// components/RatingModal.tsx
-
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, TextInput } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput } from 'react-native';
+import Slider from '@react-native-community/slider'; // Import the Slider
 import api from '../api';
 
 interface RatingModalProps {
@@ -10,7 +8,7 @@ interface RatingModalProps {
   onClose: () => void;
   mealId: number | null;
   studentId: number | null;
-  onRatingSubmit: () => void; // Add this line
+  onRatingSubmit: () => void;
 }
 
 const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, studentId, onRatingSubmit }) => {
@@ -42,7 +40,7 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
       });
 
       if (response.status === 201) {
-        onRatingSubmit(); // Call the callback function
+        onRatingSubmit();
         closeModal();
       } else {
         setError('Failed to submit rating');
@@ -64,16 +62,18 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Rate Today's Meal</Text>
           <View style={styles.rateInputBox}>
-            <Text style={styles.label}>Rating:</Text>
-            <Picker
-              selectedValue={ratingScore}
-              onValueChange={(itemValue) => setRatingScore(itemValue)}
-              style={styles.picker}
-            >
-              {[1, 2, 3, 4, 5].map((score) => (
-                <Picker.Item key={score} label={`${score} Star${score > 1 ? 's' : ''}`} value={score} />
-              ))}
-            </Picker>
+            <Text style={styles.label}>Rating: {ratingScore.toFixed(1)}</Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={5}
+              step={0.1} // Allows decimal values like 1.1, 1.2, etc.
+              value={ratingScore}
+              onValueChange={(value) => setRatingScore(value)}
+              minimumTrackTintColor="#007BFF"
+              maximumTrackTintColor="#CCC"
+              thumbTintColor="#007BFF"
+            />
 
             <Text style={styles.label}>Feedback:</Text>
             <TextInput
@@ -128,7 +128,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
-  picker: {
+  slider: {
+    width: '100%',
     marginBottom: 16,
   },
   feedbackInput: {

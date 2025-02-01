@@ -1,5 +1,3 @@
-// constants/Colors.ts
-
 const tintColorLight = '#FF7031'; // Orange for light mode
 const tintColorDark = '#ff6622'; // Darker orange for dark mode
 
@@ -14,6 +12,10 @@ export const Colors = {
     cardBackground: '#F8F9FA', // Light gray for cards
     border: '#E0E0E0', // Light gray for borders
     unfocused: '#E0E0E0', // Light gray for unfocused text
+    lessDarkBackground: '#F2F2F2', // Lighter gray for secondary backgrounds
+    success: '#28A745', // Green for success messages
+    warning: '#FFC107', // Yellow for warnings
+    error: '#DC3545', // Red for errors
   },
   dark: {
     text: '#ECEDEE', // Light gray for text
@@ -25,5 +27,9 @@ export const Colors = {
     cardBackground: '#1E1E1E', // Dark gray for cards
     border: '#333333', // Dark gray for borders
     unfocused: '#333333', // Dark gray for unfocused text
+    lessDarkBackground: '#2A2A2A', // Lighter black for secondary backgrounds
+    success: '#28A745', // Green for success messages
+    warning: '#FFC107', // Yellow for warnings
+    error: '#DC3545', // Red for errors
   },
 };
