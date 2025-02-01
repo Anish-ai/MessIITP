@@ -13,26 +13,34 @@ interface MealCardProps {
   dishes: Dish[];
   mealId: number | null;
   studentId: number | null;
+  onMealChange?: () => void;
 }
 
-const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId }) => {
+const getRatingColor = (rating: number | null) => {
+  if (rating === null) return 'rgb(255, 200, 200)'; // Light red for no rating
+  
+  const red = Math.min(255, Math.max(150, 255 - rating * 25));
+  const green = Math.min(255, Math.max(150, rating * 55));
+  return `rgb(${red}, ${green}, 150)`;
+};
+
+const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId, onMealChange }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [todayAvgRating, setTodayAvgRating] = useState<number | null>(null);
 
-  console.log('Meal ID:', mealId);
-
-  // Add a dependency on dishes to trigger rating fetch when menu changes
+  // Reset ratings when mealId becomes null or changes
+  console.log('mealId:', mealId);
   useEffect(() => {
-    if (mealId) {
-      getAvgRating();
-      getTodayAvgRating();
-    } else {
-      // Reset ratings if no meal ID
+    if (!mealId) {
       setAvgRating(null);
       setTodayAvgRating(null);
+    } else {
+      getAvgRating();
+      getTodayAvgRating();
     }
-  }, [mealId, dishes]); // Add dishes to dependency array
+    onMealChange && onMealChange();
+  }, [mealId, dishes]);
 
   const handleRatePress = () => {
     setIsModalVisible(true);
@@ -43,11 +51,18 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
   };
 
   const onRatingSubmit = () => {
-    getAvgRating();
-    getTodayAvgRating();
+    if (mealId) {
+      getAvgRating();
+      getTodayAvgRating();
+    }
   };
 
   const getAvgRating = async () => {
+    if (!mealId) {
+      setAvgRating(null);
+      return;
+    }
+
     try {
       const response = await api.get('/ratings/getRatingsByMeal', {
         params: { meal_id: mealId },
@@ -58,8 +73,6 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
       } else {
         setAvgRating(null);
       }
-
-      console.log('Average rating:', response.data.averageRating);
     } catch (error) {
       console.error('Failed to fetch average rating:', error);
       setAvgRating(null);
@@ -67,6 +80,11 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
   };
 
   const getTodayAvgRating = async () => {
+    if (!mealId) {
+      setTodayAvgRating(null);
+      return;
+    }
+
     try {
       const today = new Date().toISOString().split('T')[0];
       const response = await api.get('/ratings/getRatingByMealAndDate', {
@@ -78,8 +96,6 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
       } else {
         setTodayAvgRating(null);
       }
-
-      console.log("Today's average rating:", response.data.averageRating);
     } catch (error) {
       console.error("Failed to fetch today's average rating:", error);
       setTodayAvgRating(null);
@@ -91,29 +107,41 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
       <Text style={styles.mealType}>{`Today's ${mealType}`}</Text>
       {mealId ? (
         <>
-          <Text>
-            Average rating: {avgRating !== null ? avgRating.toFixed(1) : 'N/A'}
-          </Text>
-          <Text>
-            Today's average rating: {todayAvgRating !== null ? todayAvgRating.toFixed(1) : 'N/A'}
-          </Text>
+          <View style={[styles.ratingBox, { backgroundColor: getRatingColor(avgRating) }]}> 
+            <Text style={styles.ratingText}>
+              Average rating: {avgRating !== null ? avgRating.toFixed(1) : 'N/A'}
+            </Text>
+          </View>
+          <View style={[styles.ratingBox, { backgroundColor: getRatingColor(todayAvgRating) }]}> 
+            <Text style={styles.ratingText}>
+              Today's average rating: {todayAvgRating !== null ? todayAvgRating.toFixed(1) : 'N/A'}
+            </Text>
+          </View>
         </>
       ) : (
         <Text>No meal available</Text>
       )}
-      {dishes.map((dish, index) => (
-        <Text key={index} style={[styles.dishName, dish.type === 'nonveg' && styles.nonVegText]}>
-          {dish.dish_name}
-        </Text>
-      ))}
+      <View style={styles.dishContainer}>
+        <View style={styles.vegSection}>
+          <Text style={styles.sectionTitle}>Vegetarian</Text>
+          {dishes.filter(dish => dish.type === 'veg').map((dish, index) => (
+            <Text key={index} style={styles.dishName}>{`${index + 1}. ${dish.dish_name}`}</Text>
+          ))}
+        </View>
+        <View style={styles.nonVegSection}>
+          <Text style={styles.sectionTitle}>Non-Vegetarian</Text>
+          {dishes.filter(dish => dish.type === 'nonveg').map((dish, index) => (
+            <Text key={index} style={[styles.dishName, styles.nonVegText]}>{`${index + 1}. ${dish.dish_name}`}</Text>
+          ))}
+        </View>
+      </View>
       {mealId && (
         <TouchableOpacity onPress={handleRatePress}>
           <View style={styles.rateButton}>
-            <Text style={styles.rateText}>Rate</Text>
+            <Text style={styles.rateText}>Rate Current Meal 😁</Text>
           </View>
         </TouchableOpacity>
       )}
-
       <RatingModal
         visible={isModalVisible}
         onClose={closeModal}
@@ -131,11 +159,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 8,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   mealType: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
+  },
+  dishContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  vegSection: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: '#DFF2BF',
+    borderRadius: 10,
+    marginRight: 5,
+    borderWidth: 1,
+    borderColor: '#86B87D',
+  },
+  nonVegSection: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: '#FFBABA',
+    borderRadius: 10,
+    marginLeft: 5,
+    borderWidth: 1,
+    borderColor: '#D46A6A',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   dishName: {
     fontSize: 16,
@@ -153,6 +211,18 @@ const styles = StyleSheet.create({
   },
   rateText: {
     color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  ratingBox: {
+    padding: 8,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#555',
+    alignItems: 'center',
+  },
+  ratingText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
