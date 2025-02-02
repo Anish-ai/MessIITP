@@ -9,17 +9,17 @@ interface RatingDonutProps {
   strokeWidth?: number;
 }
 
-const RatingDonut: React.FC<RatingDonutProps> = ({ 
-  rating, 
-  size = 40, 
-  strokeWidth = 4 
+const RatingDonut: React.FC<RatingDonutProps> = ({
+  rating,
+  size = 40,
+  strokeWidth = 4
 }) => {
-  const textColor = useThemeColor({}, 'text');
-  const borderColor = useThemeColor({}, 'text');
-  
+  const { color: textColor } = useThemeColor({}, 'text');
+  const { color: borderColor } = useThemeColor({}, 'border');
+
   // Normalize rating to be between 0 and 1
   const normalizedRating = rating !== null ? (rating - 1) / 4 : 0;
-  
+
   // Calculate dimensions
   const center = size / 2;
   const radius = (size - strokeWidth) / 2;
@@ -30,16 +30,16 @@ const RatingDonut: React.FC<RatingDonutProps> = ({
   // Calculate color based on rating
   const getColor = () => {
     if (rating === null) return borderColor;
-    
+
     const r = normalizedRating <= 0.5
       ? 255
       : Math.round(255 - (normalizedRating - 0.5) * 2 * 255);
-    
+
     const g = normalizedRating <= 0.5
       ? Math.round(normalizedRating * 2 * 255)
       : 255;
-      
-    return `rgb(${r}, ${g}, 100)`;
+
+    return `rgb(${r}, ${g}, 0)`;
   };
 
   return (
@@ -80,10 +80,10 @@ const RatingDonut: React.FC<RatingDonutProps> = ({
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        <Text style={{ 
-          fontSize: 12, 
+        <Text style={{
+          fontSize: 12,
           fontWeight: 'bold',
-          color: textColor 
+          color: textColor
         }}>
           {rating !== null ? rating.toFixed(1) : 'N/A'}
         </Text>

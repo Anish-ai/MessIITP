@@ -1,7 +1,7 @@
 // app/menu/index.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import MealCard from '@/components/MealCard';
 import DayPickerModal from '@/components/DayPickerModal';
@@ -9,6 +9,7 @@ import api from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
+import RatingTrendGraph from '@/components/RatingTrendGraph';
 
 const MenuScreen = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -26,12 +27,22 @@ const MenuScreen = () => {
   const adminEmails = ['anish_2301mc40@iitp.ac.in', 'Jatin_2301ec12@iitp.ac.in'];
   const crEmails = ['cr1@example.com', 'cr2@example.com'];
 
+  const messIds = [2, 3, 4, 5, 6, 7]; // Replace with actual mess IDs
+  const messNames = {
+    2: 'Mess 2',
+    3: 'Mess 3',
+    4: 'Mess 4',
+    5: 'Mess 5',
+    6: 'Mess 6',
+    7: 'Mess 7',
+  };
+
   // Theme colors
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
-  const cardBackground = useThemeColor({}, 'cardBackground');
-  const borderColor = useThemeColor({}, 'border');
+  const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
+  const { color: textColor } = useThemeColor({}, 'text');
+  const { color: tintColor } = useThemeColor({}, 'tint');
+  const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+  const { color: borderColor } = useThemeColor({}, 'border');
 
   // Fetch student details
   useEffect(() => {
@@ -76,7 +87,7 @@ const MenuScreen = () => {
       try {
         const response = await api.get(`/students/${studentId}`);
         const student = response.data;
-        
+
         // Check if mess_id has changed
         if (student.mess_id !== messId) {
           setMessId(student.mess_id);
@@ -96,17 +107,17 @@ const MenuScreen = () => {
         const response = await api.get(`/students/${studentId}`);
         const student = response.data;
         setUserName(student.name);
-        
+
         // Check if mess_id has changed
         if (student.mess_id !== messId) {
           setMessId(student.mess_id);
           // Fetch menu for the new mess
           fetchMenu();
         }
-        
+
         setUserEmail(student.email);
         setStudentId(student.student_id);
-        
+
         const { meal, day } = getCurrentMeal();
         console.log('meal:', meal);
         console.log('day:', day);
@@ -169,7 +180,7 @@ const MenuScreen = () => {
       Alert.alert('Error', 'Student ID not found.');
       return;
     }
-  
+
     if (adminEmails.includes(userEmail)) {
       router.push({
         pathname: '/settings/AdminSettings',
@@ -264,7 +275,7 @@ const MenuScreen = () => {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const nextDayName = days[nextDay.getDay()];
         return { meal: 'breakfast', day: nextDayName };
-      } 
+      }
     }
     return { meal: 'breakfast', day: currentDay }; // Default
   };
@@ -274,46 +285,59 @@ const MenuScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Greeting */}
-      <Text style={[styles.greeting, { color: textColor }]}>Hi, {userName}</Text>
+      {/* Fixed Header with Greeting and Buttons */}
+      <View style={[styles.header, { backgroundColor }]}>
+        <Text style={[styles.greeting, { color: textColor }]}>Hi, {userName}</Text>
+        {/* Group buttons in a separate View */}
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity style={styles.refreshButton} onPress={fetchMenu}>
+            <Ionicons name="refresh" size={28} color={tintColor} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsButton} onPress={handleSettingsPress}>
+            <Ionicons name="settings" size={28} color={tintColor} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.themeToggleButton} onPress={toggleTheme}>
+            <Ionicons name={theme === 'light' ? 'moon' : 'sunny'} size={28} color={tintColor} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      {/* Refresh Button */}
-      <TouchableOpacity style={styles.refreshButton} onPress={fetchMenu}>
-        <Ionicons name="refresh" size={24} color={tintColor} />
-      </TouchableOpacity>
+      {/* Scrollable Content */}
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.content}>
 
-      {/* Settings Button */}
-      <TouchableOpacity style={styles.settingsButton} onPress={handleSettingsPress}>
-        <Ionicons name="settings" size={24} color={tintColor} />
-      </TouchableOpacity>
+          {/* Loading State */}
+          {loading && <ActivityIndicator size="large" color={tintColor} />}
 
-      {/* Loading State */}
-      {loading && <ActivityIndicator size="large" color={tintColor} />}
+          {/* Error Message */}
+          {error && <Text style={[styles.errorText, { color: 'red' }]}>{error}</Text>}
 
-      {/* Error Message */}
-      {error && <Text style={[styles.errorText, { color: 'red' }]}>{error}</Text>}
+          {/* Current Meal Card */}
+          {!loading && !error && (
+            <MealCard
+              mealType={currentMeal}
+              dishes={fullMenu[currentMeal] || []}
+              mealId={mealId}
+              studentId={studentId}
+            />
+          )}
 
-      {/* Current Meal Card */}
-      {!loading && !error && (
-        <MealCard
-          mealType={currentMeal}
-          dishes={fullMenu[currentMeal] || []}
-          mealId={mealId}
-          studentId={studentId}
-        />
-      )}
+          {/* Rating Trend Graph */}
+          <RatingTrendGraph mealType={currentMeal} messIds={messIds} messNames={messNames} />
 
-      {/* See Full Mess Menu Button */}
-      <TouchableOpacity style={[styles.fullMenuButton, { backgroundColor: tintColor }]} onPress={openModal}>
-        <Text style={styles.fullMenuButtonText}>See Full Mess Menu</Text>
-      </TouchableOpacity>
+          {/* See Full Mess Menu Button */}
+          <TouchableOpacity style={[styles.fullMenuButton, { backgroundColor: tintColor }]} onPress={openModal}>
+            <Text style={styles.fullMenuButtonText}>See Full Mess Menu</Text>
+          </TouchableOpacity>
 
-      {/* Day Picker Modal */}
-      <DayPickerModal
-        visible={isModalVisible}
-        onClose={closeModal}
-        messId={messId ? messId.toString() : ''}
-      />
+          {/* Day Picker Modal */}
+          <DayPickerModal
+            visible={isModalVisible}
+            onClose={closeModal}
+            messId={messId ? messId.toString() : ''}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -321,26 +345,42 @@ const MenuScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
+    elevation: 5,
+  },
+  content: {
+    paddingBottom: 50, // Adjust the padding to make space for the DayPickerModal
+    paddingHorizontal: -26,
   },
   greeting: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8, // Adjust the gap between buttons
   },
   refreshButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    padding: 8,
+    padding: 4, // Reduced padding
     borderRadius: 20,
   },
   settingsButton: {
-    position: 'absolute',
-    top: 16,
-    right: 60, // Adjust the position as needed
-    padding: 8,
+    padding: 4, // Reduced padding
     borderRadius: 20,
+  },
+  themeToggleButton: {
+    padding: 4, // Reduced padding
+    borderRadius: 20,
+  },
+  scrollContainer: {
+    flex: 1,
+    padding: 16,
   },
   errorText: {
     fontSize: 16,

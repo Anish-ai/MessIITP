@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const AdminSettings = () => {
   const [isChangeMessModalVisible, setIsChangeMessModalVisible] = useState(false);
-  const tintColor = useThemeColor({}, 'tint');
+  const { color: tintColor } = useThemeColor({}, 'tint');
   const { student_id } = useLocalSearchParams<{ student_id: string }>();
 
   const openChangeMessModal = () => setIsChangeMessModalVisible(true);

@@ -13,10 +13,12 @@ export default function LoginScreen() {
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
-  const unfocusedColor = useThemeColor({}, 'unfocused'); // Add an unfocused color to your theme
+  const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
+  const { color: textColor } = useThemeColor({}, 'text');
+  const { color: tintColor } = useThemeColor({}, 'tint');
+  const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+  const { color: borderColor } = useThemeColor({}, 'border');
+  const { color: unfocusedColor } = useThemeColor({}, 'unfocused');
 
   const handleLogin = async () => {
     try {

@@ -26,9 +26,9 @@ export default function ChangeMess({ onClose, isVisible }: ChangeMessProps) {
   const [messes, setMesses] = useState<Mess[]>([]);
   const [selectedMess, setSelectedMess] = useState<number | null>(null);
   const [currentMessId, setCurrentMessId] = useState<number | null>(null);
-
-  const tintColor = useThemeColor({}, 'tint');
-  const textColor = useThemeColor({}, 'text');
+  
+  const { color: textColor } = useThemeColor({}, 'text');
+  const { color: tintColor } = useThemeColor({}, 'tint');
 
   useEffect(() => {
     if (isVisible) {

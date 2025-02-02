@@ -21,10 +21,12 @@ export default function SignupScreen() {
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [isPickerFocused, setIsPickerFocused] = useState(false);
 
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
-  const unfocusedColor = useThemeColor({}, 'unfocused');
+  const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
+  const { color: textColor } = useThemeColor({}, 'text');
+  const { color: tintColor } = useThemeColor({}, 'tint');
+  const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+  const { color: borderColor } = useThemeColor({}, 'border');
+  const { color: unfocusedColor } = useThemeColor({}, 'unfocused');
 
   const handleSignup = async () => {
     try {
@@ -163,53 +165,53 @@ export default function SignupScreen() {
             dropdownIconColor={tintColor}
             mode="dropdown"
           >
-            <Picker.Item 
-              label="CV Raman" 
-              value={2} 
-              style={{ 
+            <Picker.Item
+              label="CV Raman"
+              value={2}
+              style={{
                 color: textColor,
                 backgroundColor: backgroundColor, // Add background color here
-              }} 
+              }}
             />
-            <Picker.Item 
-              label="Asima" 
-              value={3} 
-              style={{ 
+            <Picker.Item
+              label="Asima"
+              value={3}
+              style={{
                 color: textColor,
-                backgroundColor: backgroundColor 
-              }} 
+                backgroundColor: backgroundColor
+              }}
             />
-            <Picker.Item 
-              label="Kalam Mess 3" 
-              value={4} 
-              style={{ 
+            <Picker.Item
+              label="Kalam Mess 3"
+              value={4}
+              style={{
                 color: textColor,
-                backgroundColor: backgroundColor 
-              }} 
+                backgroundColor: backgroundColor
+              }}
             />
-            <Picker.Item 
-              label="Kalam Mess 4" 
-              value={5} 
-              style={{ 
+            <Picker.Item
+              label="Kalam Mess 4"
+              value={5}
+              style={{
                 color: textColor,
-                backgroundColor: backgroundColor 
-              }} 
+                backgroundColor: backgroundColor
+              }}
             />
-            <Picker.Item 
-              label="Aryabhatta Mess 5" 
-              value={6} 
-              style={{ 
+            <Picker.Item
+              label="Aryabhatta Mess 5"
+              value={6}
+              style={{
                 color: textColor,
-                backgroundColor: backgroundColor 
-              }} 
+                backgroundColor: backgroundColor
+              }}
             />
-            <Picker.Item 
-              label="Aryabhatta Mess 6" 
-              value={7} 
-              style={{ 
+            <Picker.Item
+              label="Aryabhatta Mess 6"
+              value={7}
+              style={{
                 color: textColor,
-                backgroundColor: backgroundColor 
-              }} 
+                backgroundColor: backgroundColor
+              }}
             />
           </Picker>
         </View>

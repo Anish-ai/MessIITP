@@ -7,7 +7,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export default function CRSettings() {
   const [isChangeMessModalVisible, setIsChangeMessModalVisible] = useState(false);
   
-  const tintColor = useThemeColor({}, 'tint');
+  const { color: tintColor } = useThemeColor({}, 'tint');
 
   const openChangeMessModal = () => {
     setIsChangeMessModalVisible(true);

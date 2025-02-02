@@ -16,6 +16,8 @@ export const Colors = {
     success: '#28A745', // Green for success messages
     warning: '#FFC107', // Yellow for warnings
     error: '#DC3545', // Red for errors
+    veg: '#7CFF9A', // Green for vegetarian dishes
+    nonVeg: '#FF7C7C', // Red for non-vegetarian dishes
   },
   dark: {
     text: '#ECEDEE', // Light gray for text
@@ -31,5 +33,7 @@ export const Colors = {
     success: '#28A745', // Green for success messages
     warning: '#FFC107', // Yellow for warnings
     error: '#DC3545', // Red for errors
+    veg: '#004A11', // Green for vegetarian dishes
+    nonVeg: '#790000', // Red for non-vegetarian dishes
   },
 };

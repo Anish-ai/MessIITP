@@ -39,11 +39,14 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [todayAvgRating, setTodayAvgRating] = useState<number | null>(null);
 
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
-  const borderColor = useThemeColor({}, 'border');
-  const lessDarkBackground = useThemeColor({}, 'lessDarkBackground');
+  const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
+    const { color: textColor } = useThemeColor({}, 'text');
+    const { color: tintColor } = useThemeColor({}, 'tint');
+    const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+    const { color: borderColor } = useThemeColor({}, 'border');
+    const { color: lessDarkBackground } = useThemeColor({}, 'lessDarkBackground');
+    const { color: veg} = useThemeColor({}, 'veg');
+    const { color: nonVeg} = useThemeColor({}, 'nonVeg');
 
   useEffect(() => {
     if (!mealId) {
@@ -140,13 +143,13 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
       )}
 
       <View style={styles.dishContainer}>
-        <View style={[styles.vegSection, { backgroundColor: 'rgba(0,150,0,0.5)', borderColor }]}>
+        <View style={[styles.vegSection, { backgroundColor: veg, borderColor: borderColor }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Vegetarian</Text>
           {dishes.filter(dish => dish.type === 'veg').map((dish, index) => (
             <Text key={index} style={[styles.dishName, { color: textColor }]}>{`${index + 1}. ${dish.dish_name}`}</Text>
           ))}
         </View>
-        <View style={[styles.nonVegSection, { backgroundColor: 'rgba(150,0,0,0.5)', borderColor }]}>
+        <View style={[styles.nonVegSection, { backgroundColor: nonVeg, borderColor: borderColor }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Non-Vegetarian</Text>
           {dishes.filter(dish => dish.type === 'nonveg').map((dish, index) => (
             <Text key={index} style={[styles.dishName, styles.nonVegText, { color: textColor }]}>{`${index + 1}. ${dish.dish_name}`}</Text>

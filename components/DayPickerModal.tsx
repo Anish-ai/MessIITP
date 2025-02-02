@@ -23,11 +23,12 @@ interface MealData {
 }
 
 const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messId }) => {
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
-  const borderColor = useThemeColor({}, 'border');
-  const lessDarkBackground = useThemeColor({}, 'lessDarkBackground');
+  const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
+  const { color: textColor } = useThemeColor({}, 'text');
+  const { color: tintColor } = useThemeColor({}, 'tint');
+  const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+  const { color: borderColor } = useThemeColor({}, 'border');
+  const { color: lessDarkBackground } = useThemeColor({}, 'lessDarkBackground');
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [fullMenu, setFullMenu] = useState<{ [key: string]: MealData }>({});
   const [loading, setLoading] = useState(false);
@@ -111,15 +112,15 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
     <Modal visible={visible} transparent={true} animationType="slide">
       <View style={styles.modalContainer}>
         <View style={[
-          styles.modalContent, 
-          { 
+          styles.modalContent,
+          {
             backgroundColor: backgroundColor,
             borderColor: borderColor,
             borderWidth: 1,
           }
         ]}>
           <Text style={[styles.modalTitle, { color: textColor }]}>Select Day</Text>
-          
+
           <View style={[styles.pickerContainer, { backgroundColor: lessDarkBackground, borderColor }]}>
             <Picker
               selectedValue={selectedDay}
@@ -129,9 +130,9 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
               mode='dropdown'
             >
               {days.map((day) => (
-                <Picker.Item 
-                  key={day} 
-                  label={day} 
+                <Picker.Item
+                  key={day}
+                  label={day}
                   value={day}
                   color={textColor}
                   style={{ backgroundColor: lessDarkBackground }}
@@ -149,9 +150,9 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
               {Object.entries(fullMenu).map(([mealType, mealData]) => (
                 <View key={mealType} style={[
                   styles.mealSection,
-                  { 
+                  {
                     backgroundColor: lessDarkBackground,
-                    borderColor: borderColor 
+                    borderColor: borderColor
                   }
                 ]}>
                   <View style={styles.mealHeader}>
@@ -163,10 +164,10 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
                     </View>
                   </View>
                   {mealData.dishes && mealData.dishes.map((dish, index) => (
-                    <Text 
-                      key={index} 
+                    <Text
+                      key={index}
                       style={[
-                        styles.dishName, 
+                        styles.dishName,
                         { color: textColor },
                         dish.type === 'nonveg' && styles.nonVegText
                       ]}
@@ -179,8 +180,8 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
             </ScrollView>
           )}
 
-          <TouchableOpacity 
-            style={[styles.closeButton, { backgroundColor: tintColor }]} 
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: tintColor }]}
             onPress={onClose}
           >
             <Text style={styles.closeButtonText}>Close</Text>
