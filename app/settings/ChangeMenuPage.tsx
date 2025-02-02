@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Keyboard } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useThemeColor } from '@/hooks/useThemeColor';
 import api from '../../api';
 import debounce from 'lodash.debounce';
 
@@ -16,6 +17,14 @@ const ChangeMenuPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [messId, setMessId] = useState<number | null>(null);
     const [suggestions, setSuggestions] = useState<{ dish_name: string }[]>([]);
+
+    const { color: backgroundColor } = useThemeColor({}, 'background');
+    const { color: textColor } = useThemeColor({}, 'text');
+    const { color: tintColor } = useThemeColor({}, 'tint');
+    const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+    const { color: borderColor } = useThemeColor({}, 'border');
+    const { color: veg } = useThemeColor({}, 'veg');
+    const { color: nonVeg } = useThemeColor({}, 'nonVeg');
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const mealTypes = ['breakfast', 'lunch', 'snacks', 'dinner'];
@@ -208,99 +217,142 @@ const ChangeMenuPage = () => {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Change Mess Menu</Text>
+        <View style={[styles.container, { backgroundColor }]}>
+            {/* Header */}
+            <View style={[styles.header, { backgroundColor: cardBackground }]}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                >
+                    <Ionicons name="arrow-back" size={24} color={tintColor} />
+                </TouchableOpacity>
+                <Text style={[styles.title, { color: textColor }]}>Change Menu</Text>
+            </View>
 
-            {/* Day Picker */}
-            <Picker
-                selectedValue={selectedDay}
-                onValueChange={(itemValue) => setSelectedDay(itemValue)}
-                style={styles.picker}
-            >
-                {days.map((day) => (
-                    <Picker.Item key={day} label={day} value={day} />
-                ))}
-            </Picker>
+            {/* Selection Card */}
+            <View style={[styles.selectionCard, { backgroundColor: cardBackground, borderColor }]}>
+                <Picker
+                    selectedValue={selectedDay}
+                    onValueChange={setSelectedDay}
+                    style={[styles.picker, { color: textColor }]}
+                    dropdownIconColor={tintColor}
+                    mode='dropdown'
+                >
+                    {days.map((day) => (
+                        <Picker.Item key={day} label={day} value={day} color={textColor} style={{backgroundColor: cardBackground, borderColor}}/>
+                    ))}
+                </Picker>
 
-            {/* Meal Type Picker */}
-            <Picker
-                selectedValue={selectedMealType}
-                onValueChange={(itemValue) => setSelectedMealType(itemValue)}
-                style={styles.picker}
-            >
-                {mealTypes.map((mealType) => (
-                    <Picker.Item key={mealType} label={mealType} value={mealType} />
-                ))}
-            </Picker>
+                <Picker
+                    selectedValue={selectedMealType}
+                    onValueChange={setSelectedMealType}
+                    style={[styles.picker, { color: textColor }]}
+                    dropdownIconColor={tintColor}
+                    mode='dropdown'
+                >
+                    {mealTypes.map((type) => (
+                        <Picker.Item 
+                            key={type} 
+                            label={type.charAt(0).toUpperCase() + type.slice(1)} 
+                            value={type}
+                            color={textColor}
+                            style={{ backgroundColor: cardBackground, borderColor }}
+                        />
+                    ))}
+                </Picker>
+            </View>
 
-            {/* Dish List */}
+            {/* Dishes List */}
             <ScrollView style={styles.dishList}>
                 {dishes.map((dish, index) => (
-                    <View key={index} style={styles.dishItem}>
-                        <Text style={styles.dishName}>{dish.dish_name}</Text>
+                    <View 
+                        key={index} 
+                        style={[
+                            styles.dishItem, 
+                            { 
+                                backgroundColor: cardBackground,
+                                borderColor,
+                                borderLeftColor: dish.type === 'veg' ? veg : nonVeg
+                            }
+                        ]}
+                    >
+                        <Text style={[styles.dishName, { color: textColor }]}>{dish.dish_name}</Text>
                         <TouchableOpacity
-                            style={styles.toggleButton}
+                            style={[styles.toggleButton, { backgroundColor: dish.type === 'veg' ? veg : nonVeg }]}
                             onPress={() => handleToggleDishType(index)}
                         >
-                            <Text style={styles.toggleButtonText}>{dish.type.toUpperCase()}</Text>
+                            <Text style={[styles.toggleButtonText, {color: textColor}]}>{dish.type === 'veg' ? 'VEG' : 'NON-VEG'}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.removeButton}
                             onPress={() => handleRemoveDish(index)}
                         >
-                            <Ionicons name="remove-circle" size={24} color="red" />
+                            <Ionicons name="close-circle" size={24} color='#DC3545' />
                         </TouchableOpacity>
                     </View>
                 ))}
             </ScrollView>
 
-            {/* Suggestions */}
-            {suggestions.length > 0 && (
-                <ScrollView style={styles.suggestionsContainer}
+            {/* Add New Dish Section */}
+            <View style={[styles.addDishSection, { backgroundColor: cardBackground, borderColor }]}>
+                <View style={styles.addDishContainer}>
+                    <TextInput
+                        style={[styles.input, { backgroundColor, color: textColor, borderColor }]}
+                        placeholder="Add a new dish"
+                        placeholderTextColor={textColor + '80'}
+                        value={newDish}
+                        onChangeText={handleInputChange}
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                    />
+                    <TouchableOpacity 
+                        style={[styles.addButton, { backgroundColor: tintColor }]} 
+                        onPress={handleAddDish}
+                    >
+                        <Ionicons name="add" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                </View>
 
-                    keyboardShouldPersistTaps="always"
-                    onStartShouldSetResponder={() => true}
-                >
-                    {suggestions.map((suggestion, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            style={styles.suggestionItem}
-                            focusable={false}  // Add this
-                            importantForAccessibility="no"  // Add this
-                            onPress={() => {
-                                setNewDish(suggestion.dish_name);
-                                setSuggestions([]);
-                            }}
-                        >
-                            <Text style={styles.suggestionText}>{suggestion.dish_name}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            )}
-
-            {/* Add New Dish */}
-            <View style={styles.addDishContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Add a new dish"
-                    value={newDish}
-                    onChangeText={handleInputChange}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                />
-                <TouchableOpacity style={styles.addButton} onPress={handleAddDish}>
-                    <Ionicons name="add-circle" size={24} color="green" />
-                </TouchableOpacity>
+                {/* Suggestions */}
+                {suggestions.length > 0 && (
+                    <ScrollView 
+                        style={[styles.suggestionsContainer, { backgroundColor, borderColor }]}
+                        keyboardShouldPersistTaps="always"
+                    >
+                        {suggestions.map((suggestion, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                style={[styles.suggestionItem, { borderBottomColor: borderColor }]}
+                                onPress={() => {
+                                    setNewDish(suggestion.dish_name);
+                                    setSuggestions([]);
+                                }}
+                            >
+                                <Text style={[styles.suggestionText, { color: textColor }]}>
+                                    {suggestion.dish_name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                )}
             </View>
 
-            {/* Save Changes Button */}
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
-                <Text style={styles.saveButtonText}>Save Changes</Text>
+            {/* Save Button */}
+            <TouchableOpacity 
+                style={[styles.saveButton, { backgroundColor: tintColor }]} 
+                onPress={handleSaveChanges}
+                disabled={loading}
+            >
+                {loading ? (
+                    <Text style={styles.saveButtonText}>Saving...</Text>
+                ) : (
+                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                )}
             </TouchableOpacity>
 
-            {/* Loading and Error Messages */}
-            {loading && <Text style={styles.loadingText}>Saving changes...</Text>}
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && (
+                <Text style={[styles.errorText, { color: nonVeg }]}>{error}</Text>
+            )}
         </View>
     );
 };
@@ -308,91 +360,123 @@ const ChangeMenuPage = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: 16,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+    backButton: {
+        padding: 8,
+        marginRight: 16,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 16,
+    },
+    selectionCard: {
+        margin: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        overflow: 'hidden',
+        elevation: 2,
     },
     picker: {
-        marginBottom: 16,
+        height: 60,
+        elevation: 5,
     },
     dishList: {
-        marginBottom: 16,
+        flex: 1,
+        paddingHorizontal: 16,
     },
     dishItem: {
         flexDirection: 'row',
         alignItems: 'center',
+        padding: 12,
         marginBottom: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderLeftWidth: 4,
+        elevation: 2,
     },
     dishName: {
         flex: 1,
         fontSize: 16,
+        marginRight: 8,
     },
     toggleButton: {
-        padding: 8,
-        backgroundColor: '#DDD',
-        borderRadius: 4,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
         marginRight: 8,
     },
     toggleButtonText: {
-        fontSize: 14,
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     removeButton: {
-        padding: 8,
+        padding: 4,
+    },
+    addDishSection: {
+        padding: 16,
+        borderTopWidth: 1,
+        elevation: 2,
     },
     addDishContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
     },
     input: {
         flex: 1,
+        height: 44,
         borderWidth: 1,
-        borderColor: '#DDD',
-        borderRadius: 4,
-        padding: 8,
+        borderRadius: 50,
+        paddingHorizontal: 12,
         marginRight: 8,
     },
     addButton: {
-        padding: 8,
-    },
-    saveButton: {
-        backgroundColor: '#007BFF',
-        padding: 16,
-        borderRadius: 8,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
         alignItems: 'center',
-    },
-    saveButtonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    loadingText: {
-        textAlign: 'center',
-        marginTop: 16,
-    },
-    errorText: {
-        color: 'red',
-        textAlign: 'center',
-        marginTop: 16,
+        elevation: 2,
     },
     suggestionsContainer: {
         marginTop: 8,
         borderWidth: 1,
-        borderColor: '#DDD',
-        borderRadius: 4,
+        borderRadius: 8,
         maxHeight: 150,
-        overflow: 'hidden',
     },
     suggestionItem: {
-        padding: 8,
+        padding: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#DDD',
     },
     suggestionText: {
         fontSize: 16,
+    },
+    saveButton: {
+        margin: 16,
+        padding: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        elevation: 3,
+    },
+    saveButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    errorText: {
+        textAlign: 'center',
+        marginHorizontal: 16,
+        marginBottom: 16,
     },
 });
 

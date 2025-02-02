@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  FlatList, 
-  Alert, 
-  Modal 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Alert,
+  Modal,
+  ActivityIndicator
 } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api';
 
 interface Mess {
@@ -22,13 +24,17 @@ interface ChangeMessProps {
   isVisible: boolean;
 }
 
-export default function ChangeMess({ onClose, isVisible }: ChangeMessProps) {
+const ChangeMess: React.FC<ChangeMessProps> = ({ onClose, isVisible }) => {
   const [messes, setMesses] = useState<Mess[]>([]);
   const [selectedMess, setSelectedMess] = useState<number | null>(null);
   const [currentMessId, setCurrentMessId] = useState<number | null>(null);
-  
+  const [loading, setLoading] = useState(false);
+
+  const { color: backgroundColor } = useThemeColor({}, 'background');
   const { color: textColor } = useThemeColor({}, 'text');
   const { color: tintColor } = useThemeColor({}, 'tint');
+  const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+  const { color: borderColor } = useThemeColor({}, 'border');
 
   useEffect(() => {
     if (isVisible) {
@@ -62,50 +68,71 @@ export default function ChangeMess({ onClose, isVisible }: ChangeMessProps) {
       return;
     }
 
+    setLoading(true);
     try {
       const studentId = await AsyncStorage.getItem('student_id');
-      
-      await api.put(`/students/${studentId}/mess`, { 
-        mess_id: selectedMess 
-      });
-      console.log('Current mess:', selectedMess);
 
-      Alert.alert('Success', 'Mess changed successfully', [
-        { 
-          text: 'OK', 
+      await api.put(`/students/${studentId}/mess`, {
+        mess_id: selectedMess
+      });
+
+      Alert.alert(
+        'Success',
+        'Mess changed successfully',
+        [{
+          text: 'OK',
           onPress: () => {
             onClose();
             setSelectedMess(null);
           }
-        }
-      ]);
+        }]
+      );
     } catch (error) {
       Alert.alert('Error', 'Failed to change mess');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderMessItem = ({ item }: { item: Mess }) => (
-    <TouchableOpacity
-      style={[
-        styles.messItem,
-        (selectedMess === item.mess_id || currentMessId === item.mess_id) && { 
-          backgroundColor: tintColor,
-          borderColor: tintColor 
-        }
-      ]}
-      onPress={() => setSelectedMess(item.mess_id)}
-    >
-      <Text 
+  const renderMessItem = ({ item }: { item: Mess }) => {
+    const isSelected = selectedMess === item.mess_id;
+    const isCurrent = currentMessId === item.mess_id;
+
+    return (
+      <TouchableOpacity
         style={[
-          styles.messItemText, 
-          (selectedMess === item.mess_id || currentMessId === item.mess_id) && { color: '#fff' }
+          styles.messItem,
+          { borderColor },
+          isSelected && [styles.selectedMessItem, { borderColor: tintColor }],
+          isCurrent && styles.currentMessItem
         ]}
+        onPress={() => setSelectedMess(item.mess_id)}
+        disabled={loading}
       >
-        {item.mess_name}
-        {currentMessId === item.mess_id && ' (Current)'}
-      </Text>
-    </TouchableOpacity>
-  );
+        <View style={styles.messItemContent}>
+          <Text style={[
+            styles.messItemText,
+            { color: textColor },
+            (isSelected || isCurrent) && { fontWeight: 'bold' }
+          ]}>
+            {item.mess_name}
+          </Text>
+
+          {isCurrent && (
+            <View style={[styles.currentBadge, { backgroundColor: tintColor }]}>
+              <Text style={styles.currentBadgeText}>Current</Text>
+            </View>
+          )}
+        </View>
+
+        {isSelected && (
+          <View style={[styles.checkmark, { backgroundColor: tintColor }]}>
+            <Ionicons name="checkmark" size={20} color="#FFF" />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal
@@ -114,91 +141,144 @@ export default function ChangeMess({ onClose, isVisible }: ChangeMessProps) {
       visible={isVisible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
-        <View style={[styles.modalContent, { backgroundColor: '#fff' }]}>
-          <Text style={[styles.title, { color: textColor }]}>
-            Select Your Mess
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { backgroundColor: cardBackground }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>
+              Change Your Mess
+            </Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onClose}
+              disabled={loading}
+            >
+              <Ionicons name="close" size={24} color={textColor} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.subtitle, { color: textColor }]}>
+            Select a new mess from the options below
           </Text>
-          
+
           <FlatList
             data={messes}
             renderItem={renderMessItem}
             keyExtractor={(item) => item.mess_id.toString()}
-            extraData={[selectedMess, currentMessId]}
+            contentContainerStyle={styles.messList}
+            showsVerticalScrollIndicator={false}
           />
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#999', marginRight: 8 }]}
-              onPress={onClose}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.button, 
-                { 
-                  backgroundColor: selectedMess && selectedMess !== currentMessId ? tintColor : '#ccc',
-                  opacity: selectedMess && selectedMess !== currentMessId ? 1 : 0.5 
-                }
-              ]}
-              onPress={handleChangeMess}
-              disabled={!selectedMess || selectedMess === currentMessId}
-            >
-              <Text style={styles.buttonText}>Change Mess</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.confirmButton,
+              { backgroundColor: tintColor },
+              (!selectedMess || selectedMess === currentMessId || loading) &&
+              styles.confirmButtonDisabled
+            ]}
+            onPress={handleChangeMess}
+            disabled={!selectedMess || selectedMess === currentMessId || loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.confirmButtonText}>
+                Confirm Change
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     width: '90%',
-    maxHeight: '70%',
-    borderRadius: 10,
-    padding: 16,
+    maxHeight: '80%',
+    borderRadius: 24,
+    padding: 24,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  messItem: {
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderColor: '#ccc',
-  },
-  messItemText: {
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  buttonContainer: {
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  button: {
-    flex: 1,
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  messList: {
+    marginBottom: 24,
+  },
+  messItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  messItemContent: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
+  messItemText: {
+    fontSize: 16,
+  },
+  selectedMessItem: {
+    borderWidth: 2,
+  },
+  currentMessItem: {
+    borderWidth: 2,
+  },
+  currentBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  currentBadgeText: {
+    color: '#FFF',
+    fontSize: 12,
+  },
+  checkmark: {
+    padding: 8,
+    borderRadius: 12,
+  },
+  confirmButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  confirmButtonDisabled: {
+    opacity: 0.6,
+  },
+  confirmButtonText: {
+    color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
 });
+
+export default ChangeMess;

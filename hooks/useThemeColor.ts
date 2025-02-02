@@ -1,21 +1,21 @@
 // hooks/useThemeColor.ts
-
-import { Colors } from '@/constants/Colors';
-import { useState } from 'react';
+import { useThemeContext } from './ThemeContext';
+import { Colors, ColorName } from '@/constants/Colors';
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
-  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+  colorName: ColorName
 ) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light'); // Default to dark theme
-
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
-  };
-
+  const { theme, toggleTheme } = useThemeContext();
+  
   const colorFromProps = props[theme];
-
   const color = colorFromProps ? colorFromProps : Colors[theme][colorName];
 
-  return { color, theme, toggleTheme };
+  return {
+    color,
+    theme,
+    toggleTheme,
+    getColor: (name: ColorName) => Colors[theme][name],
+    colors: Colors[theme],
+  };
 }

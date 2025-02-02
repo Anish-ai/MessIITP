@@ -43,6 +43,8 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
             },
           });
 
+          console.log('Ratings Response:', response.data); // Log ratings response
+
           // Map the average ratings to an array of numbers
           data[messId] = response.data.averageRatings.map((item: { date: string; averageRating: number }) => item.averageRating);
         }
@@ -77,7 +79,7 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
     const month = date.toLocaleString('default', { month: 'short' }); // 'Feb', 'Mar', etc.
 
     // Format as 'DD\nMMM' (date and month on separate lines)
-    return `${day}\n${month}`;
+    return `${day}`;
   });
 
   const datasets = messIds.map((messId, index) => ({

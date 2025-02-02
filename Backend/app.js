@@ -21,7 +21,7 @@ console.log('PORT:', process.env.PORT);
 
 // Middleware
 app.use(cors({
-    origin: ['http://10.16.2.44:19006', 'http://localhost:19006','http://10.16.3.240:19006'], // Add more origins as needed
+    origin: ['http://10.16.1.184:19006', 'http://localhost:19006','http://10.16.3.240:19006'], // Add more origins as needed
     credentials: true,
 }));
 app.use(express.json());

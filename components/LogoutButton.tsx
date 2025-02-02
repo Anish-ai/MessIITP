@@ -1,9 +1,17 @@
 import React from 'react';
-import { TouchableOpacity, Text, Alert, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, Alert, StyleSheet, ViewStyle } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
-const LogoutButton = () => {
+interface LogoutButtonProps {
+  style?: ViewStyle;
+}
+
+const LogoutButton: React.FC<LogoutButtonProps> = ({ style }) => {
+  const { color: tintColor } = useThemeColor({}, 'tint');
+  
   const handleLogout = async () => {
     Alert.alert(
       'Logout',
@@ -17,9 +25,15 @@ const LogoutButton = () => {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await AsyncStorage.removeItem('student_id'); // Clear the student ID
-            await AsyncStorage.removeItem('token');
-            router.replace('/(auth)/login'); // Redirect to the login screen
+            try {
+              await Promise.all([
+                AsyncStorage.removeItem('student_id'),
+                AsyncStorage.removeItem('token')
+              ]);
+              router.replace('/(auth)/login');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
           },
         },
       ],
@@ -28,7 +42,17 @@ const LogoutButton = () => {
   };
 
   return (
-    <TouchableOpacity style={styles.button} onPress={handleLogout}>
+    <TouchableOpacity 
+      style={[styles.button, style]} 
+      onPress={handleLogout}
+      activeOpacity={0.7}
+    >
+      <Ionicons 
+        name="log-out-outline" 
+        size={24} 
+        color="#FFF" 
+        style={styles.icon}
+      />
       <Text style={styles.buttonText}>Logout</Text>
     </TouchableOpacity>
   );
@@ -36,17 +60,27 @@ const LogoutButton = () => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#FF3B30', // Red color for logout
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    backgroundColor: '#dc3545',
+    padding: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   buttonText: {
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
+    marginLeft: 8,
   },
+  icon: {
+    marginRight: 4,
+  }
 });
 
 export default LogoutButton;

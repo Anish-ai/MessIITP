@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColor } from '../hooks/useThemeColor';
 import RatingDonut from './RatingDonut';
 import api from '../api';
@@ -48,47 +49,37 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
           params: { mess_id: messId, day: day, meal_type: mealType },
         });
 
-        console.log('Meals Response:', mealsResponse.data); // Log meals response
-
         if (mealsResponse.data && mealsResponse.data.length > 0) {
           const mealId = mealsResponse.data[0].meal_id;
           const dishesResponse = await api.get('/meal-dishes', {
             params: { meal_id: mealId },
           });
 
-          console.log('Dishes Response:', dishesResponse.data); // Log dishes response
-
-          // Ensure dishesResponse.data is an array
           const dishes = Array.isArray(dishesResponse.data) ? dishesResponse.data : [];
 
-          let avgRating: number | null = null; // Default to null if no rating data
+          let avgRating: number | null = null;
           try {
-            // Fetch average rating for the meal
             const ratingResponse = await api.get('/ratings/getRatingsByMeal', {
               params: { meal_id: mealId },
             });
 
-            console.log('Rating Response:', ratingResponse.data); // Log rating response
-
-            // Ensure ratingResponse.data.averageRating is a number
             if (typeof ratingResponse.data?.averageRating === 'number') {
               avgRating = ratingResponse.data.averageRating;
             }
           } catch (ratingError) {
             console.error('Failed to fetch average rating:', ratingError);
-            // If the rating endpoint fails, keep avgRating as null
           }
 
           fullMenuData[mealType] = {
             meal_id: mealId,
             dishes: dishes,
-            avgRating: avgRating, // Can be null if no rating data
+            avgRating: avgRating,
           };
         } else {
           fullMenuData[mealType] = {
             meal_id: -1,
             dishes: [],
-            avgRating: null, // No rating data
+            avgRating: null,
           };
         }
       }
@@ -111,82 +102,90 @@ const DayPickerModal: React.FC<DayPickerModalProps> = ({ visible, onClose, messI
   return (
     <Modal visible={visible} transparent={true} animationType="slide">
       <View style={styles.modalContainer}>
-        <View style={[
-          styles.modalContent,
-          {
-            backgroundColor: backgroundColor,
-            borderColor: borderColor,
-            borderWidth: 1,
-          }
-        ]}>
-          <Text style={[styles.modalTitle, { color: textColor }]}>Select Day</Text>
+        <LinearGradient
+          colors={['rgba(0, 0, 0, 0.7)', 'rgba(0, 0, 0, 0.9)']}
+          style={styles.modalBackground}
+        >
+          <View style={[
+            styles.modalContent,
+            {
+              backgroundColor: cardBackground,
+              borderColor: borderColor,
+            }
+          ]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>Select Day</Text>
 
-          <View style={[styles.pickerContainer, { backgroundColor: lessDarkBackground, borderColor }]}>
-            <Picker
-              selectedValue={selectedDay}
-              onValueChange={(itemValue) => setSelectedDay(itemValue)}
-              style={[styles.picker, { color: textColor }]}
-              dropdownIconColor={textColor}
-              mode='dropdown'
-            >
-              {days.map((day) => (
-                <Picker.Item
-                  key={day}
-                  label={day}
-                  value={day}
-                  color={textColor}
-                  style={{ backgroundColor: lessDarkBackground }}
-                />
-              ))}
-            </Picker>
-          </View>
+            <View style={[styles.pickerContainer, { backgroundColor: lessDarkBackground, borderColor }]}>
+              <Picker
+                selectedValue={selectedDay}
+                onValueChange={(itemValue) => setSelectedDay(itemValue)}
+                style={[styles.picker, { color: textColor }]}
+                dropdownIconColor={textColor}
+                mode='dropdown'
+              >
+                {days.map((day) => (
+                  <Picker.Item
+                    key={day}
+                    label={day}
+                    value={day}
+                    color={textColor}
+                    style={{ backgroundColor: lessDarkBackground }}
+                  />
+                ))}
+              </Picker>
+            </View>
 
-          {loading ? (
-            <ActivityIndicator size="large" color={tintColor} />
-          ) : error ? (
-            <Text style={styles.errorText}>{error}</Text>
-          ) : (
-            <ScrollView style={styles.menuScrollView}>
-              {Object.entries(fullMenu).map(([mealType, mealData]) => (
-                <View key={mealType} style={[
-                  styles.mealSection,
-                  {
-                    backgroundColor: lessDarkBackground,
-                    borderColor: borderColor
-                  }
-                ]}>
-                  <View style={styles.mealHeader}>
-                    <Text style={[styles.mealTypeHeader, { color: textColor }]}>
-                      {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
-                    </Text>
-                    <View style={styles.ratingContainer}>
-                      <RatingDonut rating={mealData.avgRating ?? null} size={35} />
+            {loading ? (
+              <ActivityIndicator size="large" color={tintColor} />
+            ) : error ? (
+              <Text style={styles.errorText}>{error}</Text>
+            ) : (
+              <ScrollView style={styles.menuScrollView} showsVerticalScrollIndicator={false}>
+                {Object.entries(fullMenu).map(([mealType, mealData]) => (
+                  <LinearGradient
+                    key={mealType}
+                    colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+                    style={[
+                      styles.mealSection,
+                      {
+                        borderColor: borderColor,
+                      }
+                    ]}
+                  >
+                    <View style={styles.mealHeader}>
+                      <Text style={[styles.mealTypeHeader, { color: textColor }]}>
+                        {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+                      </Text>
+                      <View style={styles.ratingContainer}>
+                        <RatingDonut rating={mealData.avgRating ?? null} size={35} />
+                      </View>
                     </View>
-                  </View>
-                  {mealData.dishes && mealData.dishes.map((dish, index) => (
-                    <Text
-                      key={index}
-                      style={[
-                        styles.dishName,
-                        { color: textColor },
-                        dish.type === 'nonveg' && styles.nonVegText
-                      ]}
-                    >
-                      {dish.dish_name}
-                    </Text>
-                  ))}
-                </View>
-              ))}
-            </ScrollView>
-          )}
+                    {mealData.dishes && mealData.dishes.map((dish, index) => (
+                      <View key={index} style={styles.dishItem}>
+                        <Text
+                          style={[
+                            styles.dishName,
+                            { color: textColor },
+                            dish.type === 'nonveg' && styles.nonVegText
+                          ]}
+                        >
+                          {dish.dish_name}
+                        </Text>
+                      </View>
+                    ))}
+                  </LinearGradient>
+                ))}
+              </ScrollView>
+            )}
 
-          <TouchableOpacity
-            style={[styles.closeButton, { backgroundColor: tintColor }]}
-            onPress={onClose}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[styles.closeButton, { backgroundColor: tintColor }]}
+              onPress={onClose}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
       </View>
     </Modal>
   );
@@ -197,56 +196,70 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalBackground: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: 12,
-    padding: 16,
-    elevation: 5,
+    width: Dimensions.get('window').width * 0.9,
+    maxHeight: Dimensions.get('window').height * 0.8,
+    borderRadius: 20,
+    padding: 20,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 20,
     textAlign: 'center',
   },
   pickerContainer: {
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: 20,
     overflow: 'hidden',
   },
   picker: {
-    height: 50,
+    height: 60,
   },
   menuScrollView: {
-    marginBottom: 8,
+    marginBottom: 16,
   },
   mealSection: {
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 8,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 1,
   },
   mealHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   mealTypeHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
   },
   ratingContainer: {
     marginLeft: 8,
   },
+  dishItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    marginBottom: 8,
+  },
   dishName: {
     fontSize: 16,
-    marginBottom: 4,
-    paddingLeft: 8,
   },
   nonVegText: {
     color: '#ff4444',
@@ -258,10 +271,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   closeButton: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   closeButtonText: {
     color: '#FFF',
