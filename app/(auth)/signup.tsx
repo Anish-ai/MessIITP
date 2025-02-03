@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
@@ -7,6 +7,7 @@ import api from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import Bgdarksign from '../../components/Bgdarksign';
+import * as Notifications from 'expo-notifications';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -28,12 +29,38 @@ export default function SignupScreen() {
   const { color: borderColor } = useThemeColor({}, 'border');
   const { color: unfocusedColor } = useThemeColor({}, 'unfocused');
 
+  // Request notification permissions on component mount
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please enable notifications to receive updates.');
+      }
+    };
+
+    requestPermissions();
+  }, []);
+
   const handleSignup = async () => {
     try {
       const response = await api.post('/auth/register', { name, roll_no, email, password, mess_id });
       if (response.data.message) {
         await AsyncStorage.setItem('token', response.data.token);
         await AsyncStorage.setItem('student_id', response.data.student_id.toString());
+
+        // Send a welcome notification
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Welcome!',
+            body: `Hi ${name}, welcome to MessIITP! We're glad to have you here.`,
+            sound: true,
+          },
+          trigger: {
+            seconds: 1,
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          }, // Show the notification after 1 second
+        });
+
         router.replace('/menu');
       }
     } catch (error) {
@@ -44,7 +71,7 @@ export default function SignupScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.backgroundContainer}>
-        <Bgdarksign width="100%" height="100%" style={styles.svg} />
+        <Bgdarksign />
       </View>
 
       <View style={styles.loginForm}>
@@ -165,54 +192,12 @@ export default function SignupScreen() {
             dropdownIconColor={tintColor}
             mode="dropdown"
           >
-            <Picker.Item
-              label="CV Raman"
-              value={2}
-              style={{
-                color: textColor,
-                backgroundColor: backgroundColor, // Add background color here
-              }}
-            />
-            <Picker.Item
-              label="Asima"
-              value={3}
-              style={{
-                color: textColor,
-                backgroundColor: backgroundColor
-              }}
-            />
-            <Picker.Item
-              label="Kalam Mess 3"
-              value={4}
-              style={{
-                color: textColor,
-                backgroundColor: backgroundColor
-              }}
-            />
-            <Picker.Item
-              label="Kalam Mess 4"
-              value={5}
-              style={{
-                color: textColor,
-                backgroundColor: backgroundColor
-              }}
-            />
-            <Picker.Item
-              label="Aryabhatta Mess 5"
-              value={6}
-              style={{
-                color: textColor,
-                backgroundColor: backgroundColor
-              }}
-            />
-            <Picker.Item
-              label="Aryabhatta Mess 6"
-              value={7}
-              style={{
-                color: textColor,
-                backgroundColor: backgroundColor
-              }}
-            />
+            <Picker.Item label="CV Raman" value={2} style={{ color: textColor, backgroundColor }} />
+            <Picker.Item label="Asima" value={3} style={{ color: textColor, backgroundColor }} />
+            <Picker.Item label="Kalam Mess 3" value={4} style={{ color: textColor, backgroundColor }} />
+            <Picker.Item label="Kalam Mess 4" value={5} style={{ color: textColor, backgroundColor }} />
+            <Picker.Item label="Aryabhatta Mess 5" value={6} style={{ color: textColor, backgroundColor }} />
+            <Picker.Item label="Aryabhatta Mess 6" value={7} style={{ color: textColor, backgroundColor }} />
           </Picker>
         </View>
 
@@ -243,9 +228,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-  },
-  svg: {
-    opacity: 0.5,
   },
   loginForm: {
     zIndex: 1,

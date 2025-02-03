@@ -56,11 +56,12 @@ const ChangeMess: React.FC<ChangeMessProps> = ({ onClose, isVisible }) => {
   const fetchMesses = async () => {
     try {
       const response = await api.get('/mess/all');
-      setMesses(response.data);
+      const filteredMesses = response.data.filter((mess: Mess) => mess.mess_id !== 1);
+      setMesses(filteredMesses);
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch mess options');
     }
-  };
+  };  
 
   const handleChangeMess = async () => {
     if (!selectedMess) {

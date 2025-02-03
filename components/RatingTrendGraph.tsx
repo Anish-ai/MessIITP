@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import api from '../api';
+import * as Notifications from 'expo-notifications';
 
 interface RatingTrendGraphProps {
   mealType: string;
@@ -14,6 +15,7 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
   const [ratingsData, setRatingsData] = useState<{ [key: string]: number[] }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previousRatings, setPreviousRatings] = useState<{ [key: string]: number }>({});
 
   const { color: textColor } = useThemeColor({}, 'text');
   const { color: backgroundColor } = useThemeColor({}, 'background');
@@ -22,42 +24,50 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
 
   const colors = [
     tintColor,
-    '#FF6347', // Tomato
+    '#8A2BE2', // Blue Violet
     '#4682B4', // Steel Blue
     '#32CD32', // Lime Green
     '#FFD700', // Gold
-    '#8A2BE2', // Blue Violet
+    '#FF6347', // Tomato
   ];
 
   useEffect(() => {
     const fetchRatings = async () => {
       try {
         const data: { [key: string]: number[] } = {};
-
-        for (const messId of messIds) {
-          const response = await api.get('/ratings/getRatingsByMealAndMess', {
-            params: {
-              mess_id: messId,
-              meal_type: mealType,
-              days: 10,
-            },
-          });
-
-          console.log('Ratings Response:', response.data); // Log ratings response
-
-          // Map the average ratings to an array of numbers
-          data[messId] = response.data.averageRatings.map((item: { date: string; averageRating: number }) => item.averageRating);
-        }
-
+  
+        // Use Promise.allSettled to handle both successful and failed requests
+        const results = await Promise.allSettled(
+          messIds.map(async (messId) => {
+            try {
+              const response = await api.get('/ratings/getRatingsByMealAndMess', {
+                params: {
+                  mess_id: messId,
+                  meal_type: mealType,
+                  days: 10,
+                },
+              });
+  
+              if (response.data.averageRatings.length > 0) {
+                data[messId.toString()] = response.data.averageRatings.map(
+                  (item: { date: string; averageRating: number }) => item.averageRating
+                );
+              }
+            } catch (error) {
+              console.error(`Failed to fetch ratings for mess ${messId}:`, error);
+            }
+          })
+        );
+  
         setRatingsData(data);
       } catch (error) {
         console.error('Failed to fetch ratings:', error);
-        setError('Failed to fetch ratings. Please try again.');
+        setError('Failed to fetch ratings. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchRatings();
   }, [mealType, messIds]);
 
@@ -69,34 +79,29 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
     return <Text style={[styles.errorText, { color: 'red' }]}>{error}</Text>;
   }
 
-  // Generate labels for the past 10 days in the format 'DD\nMMM'
   const labels = Array.from({ length: 10 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (9 - i));
-
-    // Extract day and month
-    const day = date.getDate();
-    const month = date.toLocaleString('default', { month: 'short' }); // 'Feb', 'Mar', etc.
-
-    // Format as 'DD\nMMM' (date and month on separate lines)
-    return `${day}`;
+    return `${date.getDate()}`;
   });
 
-  const datasets = messIds.map((messId, index) => ({
-    data: ratingsData[messId] || Array(10).fill(0), // Fill with 0 if no data
-    color: (opacity = 1) => colors[index % colors.length],
-    strokeWidth: 2,
-  }));
+  const datasets = messIds
+    .filter((messId) => ratingsData[messId.toString()] && ratingsData[messId.toString()].length > 0)
+    .map((messId, index) => ({
+      data: ratingsData[messId.toString()],
+      color: (opacity = 1) => colors[index % colors.length],
+      strokeWidth: 2,
+    }));
+
+  if (datasets.length === 0) {
+    return <Text style={[styles.noDataText, { color: textColor }]}>No data available for {mealType}.</Text>;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <Text style={[styles.title, { color: textColor }]}>Rating Trend for {mealType}</Text>
       <LineChart
-        data={{
-          labels,
-          datasets,
-        }}
-        // width should be the same as the parent container
+        data={{ labels, datasets }}
         width={350}
         height={220}
         yAxisLabel=""
@@ -107,43 +112,26 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
           backgroundGradientFrom: backgroundColor,
           backgroundGradientTo: backgroundColor,
           decimalPlaces: 1,
-          color: () => icon, // White text for labels
-          labelColor: () => textColor, // White text for labels
-          style: {
-            borderRadius: 16,
-          },
-          propsForDots: {
-            r: '4',
-            strokeWidth: '1',
-            stroke: '#fff',
-          },
-          propsForBackgroundLines: {
-            stroke: 'rgba(255, 255, 255, 0.2)', // Light grid lines for dark background
-          },
+          color: () => icon,
+          labelColor: () => textColor,
+          style: { borderRadius: 16 },
+          propsForDots: { r: '4', strokeWidth: '1', stroke: '#fff' },
+          propsForBackgroundLines: { stroke: 'rgba(255, 255, 255, 0.2)' },
         }}
         bezier
-        style={{
-          marginVertical: 8,
-          borderRadius: 16,
-          alignSelf: 'center',
-        }}
+        style={{ marginVertical: 8, borderRadius: 16, alignSelf: 'center' }}
       />
-
-      {/* Legend */}
       <View style={styles.legendContainer}>
-        {messIds.map((messId, index) => (
-          <View key={messId} style={styles.legendItem}>
-            <View
-              style={[
-                styles.legendColor,
-                { backgroundColor: colors[index % colors.length] },
-              ]}
-            />
-            <Text style={[styles.legendText, { color: textColor }]}>
-              {messNames[messId] || `Mess ${messId}`}
-            </Text>
-          </View>
-        ))}
+        {messIds
+          .filter((messId) => ratingsData[messId.toString()] && ratingsData[messId.toString()].length > 0)
+          .map((messId, index) => (
+            <View key={messId} style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: colors[index % colors.length] }]} />
+              <Text style={[styles.legendText, { color: textColor }]}>
+                {messNames[messId-2] || `Mess ${messId}`}
+              </Text>
+            </View>
+          ))}
       </View>
     </View>
   );
@@ -167,6 +155,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  noDataText: {
     fontSize: 16,
     textAlign: 'center',
   },

@@ -40,13 +40,13 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
   const [todayAvgRating, setTodayAvgRating] = useState<number | null>(null);
 
   const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
-    const { color: textColor } = useThemeColor({}, 'text');
-    const { color: tintColor } = useThemeColor({}, 'tint');
-    const { color: cardBackground } = useThemeColor({}, 'cardBackground');
-    const { color: borderColor } = useThemeColor({}, 'border');
-    const { color: lessDarkBackground } = useThemeColor({}, 'lessDarkBackground');
-    const { color: veg} = useThemeColor({}, 'veg');
-    const { color: nonVeg} = useThemeColor({}, 'nonVeg');
+  const { color: textColor } = useThemeColor({}, 'text');
+  const { color: tintColor } = useThemeColor({}, 'tint');
+  const { color: cardBackground } = useThemeColor({}, 'cardBackground');
+  const { color: borderColor } = useThemeColor({}, 'border');
+  const { color: lessDarkBackground } = useThemeColor({}, 'lessDarkBackground');
+  const { color: veg } = useThemeColor({}, 'veg');
+  const { color: nonVeg } = useThemeColor({}, 'nonVeg');
 
   useEffect(() => {
     if (!mealId) {
@@ -103,7 +103,9 @@ const MealCard: React.FC<MealCardProps> = ({ mealType, dishes, mealId, studentId
     }
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const date = new Date();
+      const local = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+      const today = local;
       const response = await api.get('/ratings/getRatingByMealAndDate', {
         params: { meal_id: mealId, rating_date: today },
       });

@@ -1,8 +1,20 @@
 //app/_layout.tsx
 import { Stack } from 'expo-router';
 import { ThemeProvider } from '@/hooks/ThemeContext';
+import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
 
 export default function RootLayout() {
+    useEffect(() => {
+        const requestPermission = async () => {
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status !== 'granted') {
+                alert('You need to enable notifications to use this app.');
+            }
+        };
+
+        requestPermission();
+    }, []);
     return (
         <ThemeProvider>
             <Stack>

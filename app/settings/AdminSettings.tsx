@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import LogoutButton from '../../components/LogoutButton';
 import ChangeMess from '../../components/ChangeMess';
@@ -15,9 +15,17 @@ interface StudentInfo {
   phone: string;
 }
 
+interface Mess {
+  mess_id: number;
+  mess_name: string;
+}
+
 const AdminSettings = () => {
   const [isChangeMessModalVisible, setIsChangeMessModalVisible] = useState(false);
   const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
+  const [messes, setMesses] = useState<Mess[]>([]);
+  const [messName, setMessName] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Loading state
 
   const { color: backgroundColor } = useThemeColor({}, 'background');
   const { color: textColor } = useThemeColor({}, 'text');
@@ -28,18 +36,31 @@ const AdminSettings = () => {
   const { student_id } = useLocalSearchParams<{ student_id: string }>();
 
   useEffect(() => {
-    fetchStudentInfo();
-  }, [student_id]);
+    const fetchData = async () => {
+      try {
+        // Fetch student info
+        const studentResponse = await api.get(`/students/${student_id}`);
+        setStudentInfo(studentResponse.data);
 
-  const fetchStudentInfo = async () => {
-    try {
-      const response = await api.get(`/students/${student_id}`);
-      setStudentInfo(response.data);
-    } catch (error) {
-      console.error('Failed to fetch student info:', error);
-      Alert.alert('Error', 'Failed to fetch student information');
-    }
-  };
+        // Fetch all messes
+        const messesResponse = await api.get('/mess/all');
+        setMesses(messesResponse.data);
+
+        // Find the mess name using mess_id
+        if (studentResponse.data.mess_id) {
+          const mess = messesResponse.data.find((m: Mess) => m.mess_id === studentResponse.data.mess_id);
+          setMessName(mess ? mess.mess_name : 'Not assigned');
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        Alert.alert('Error', 'Failed to fetch data');
+      } finally {
+        setIsLoading(false); // Stop loading after fetching data
+      }
+    };
+
+    fetchData();
+  }, [student_id]);
 
   const openChangeMessModal = () => setIsChangeMessModalVisible(true);
   const closeChangeMessModal = () => setIsChangeMessModalVisible(false);
@@ -58,6 +79,15 @@ const AdminSettings = () => {
       <Text style={[styles.infoValue, { color: textColor }]}>{value}</Text>
     </View>
   );
+
+  // Show loading indicator while fetching data
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor }]}>
+        <ActivityIndicator size="large" color={tintColor} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -79,9 +109,7 @@ const AdminSettings = () => {
             <Text style={[styles.cardTitle, { color: textColor }]}>Student Information</Text>
             <InfoItem label="Name" value={studentInfo.name} />
             <InfoItem label="Email" value={studentInfo.email} />
-            <InfoItem label="Registration" value={studentInfo.registration_number} />
-            <InfoItem label="Phone" value={studentInfo.phone || 'Not provided'} />
-            <InfoItem label="Mess ID" value={studentInfo.mess_id.toString()} />
+            <InfoItem label="Mess" value={messName || 'Not assigned'} />
           </View>
         )}
 

@@ -10,6 +10,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import RatingTrendGraph from '@/components/RatingTrendGraph';
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const MenuScreen = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -23,19 +32,14 @@ const MenuScreen = () => {
   const [userEmail, setUserEmail] = useState('');
   const [studentId, setStudentId] = useState<number | null>(null);
   const [mealId, setMealId] = useState<number | null>(null);
+  // Add new state for notification permissions
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const adminEmails = ['anish_2301mc40@iitp.ac.in', 'Jatin_2301ec12@iitp.ac.in'];
   const crEmails = ['cr1@example.com', 'cr2@example.com'];
 
-  const messIds = [2, 3, 4, 5, 6, 7]; // Replace with actual mess IDs
-  const messNames = {
-    2: 'Mess 2',
-    3: 'Mess 3',
-    4: 'Mess 4',
-    5: 'Mess 5',
-    6: 'Mess 6',
-    7: 'Mess 7',
-  };
+  const messIds = [2,3,4,5,6,7]; // Replace with actual mess IDs
+  const messNames = ['CV Raman', 'Asima', 'Kalam 3', 'Kalam 4', 'Aryabhatta 5', 'Aryabhatta 6']; // Replace with actual mess names
 
   // Theme colors
   const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
@@ -156,6 +160,8 @@ const MenuScreen = () => {
         }
 
         setFullMenu(fullMenuData);
+
+        scheduleMealNotifications();
       } catch (error) {
         console.error('Failed to fetch student details:', error);
       }
@@ -174,6 +180,61 @@ const MenuScreen = () => {
   useEffect(() => {
     // If you want to keep any initial setup, add it here
   }, []);
+
+  // Request notification permissions
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Notifications are disabled. Please enable them in settings.');
+      }
+    };
+
+    requestPermissions();
+  }, []);
+
+  // Schedule notifications for meal times
+  const scheduleMealNotifications = async () => {
+    // Cancel all existing notifications
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    const mealTimes = [
+      { meal: 'breakfast', hour: 7, minute: 25 },
+      { meal: 'lunch', hour: 12, minute: 25 },
+      { meal: 'snacks', hour: 16, minute: 40 },
+      { meal: 'dinner', hour: 19, minute: 55 },
+    ];
+
+    const now = new Date();
+
+    for (const { meal, hour, minute } of mealTimes) {
+      // Calculate the next occurrence of the meal time
+      const triggerDate = new Date(now);
+      triggerDate.setHours(hour, minute, 0, 0);
+
+      // If the meal time has already passed today, schedule for the next day
+      if (triggerDate <= now) {
+        triggerDate.setDate(triggerDate.getDate() + 1);
+      }
+
+      // Fetch the menu for the meal
+      const menu = fullMenu[meal] || [];
+      const menuText = menu.map((dish) => dish.dish_name).join(', ');
+
+      // Schedule the notification
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `It's ${meal} time in 5 minutes!`,
+          body: `Today's menu: ${menuText}`,
+          sound: true,
+        },
+        trigger: {
+          date: triggerDate,
+          type: Notifications.SchedulableTriggerInputTypes.DATE // One-time trigger
+        },
+      });
+    }
+  };
 
   const handleSettingsPress = () => {
     if (!studentId) {

@@ -6,6 +6,7 @@ import api from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bgdarksvg from '../../components/Bgdarksvg'; // Ensure this is imported correctly
 import { MaterialIcons } from '@expo/vector-icons'; // Import icons
+import * as Notifications from 'expo-notifications';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -39,7 +40,7 @@ export default function LoginScreen() {
     <View style={[styles.container, { backgroundColor }]}>
       {/* Background SVG */}
       <View style={styles.backgroundContainer}>
-        <Bgdarksvg width="100%" height="100%" style={styles.svg} />
+        <Bgdarksvg/>
       </View>
 
       {/* Login Form */}

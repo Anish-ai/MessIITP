@@ -43,13 +43,19 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
     setError(null);
 
     try {
+      const date = new Date();
+      const local = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+
       const response = await api.post('/ratings/submit', {
         student_id: studentId,
         meal_id: mealId,
         rating_score: ratingScore,
         feedback_text: feedbackText,
-        rating_date: new Date().toISOString().split('T')[0],
+        rating_date: local,
       });
+
+      const time = new Date().toLocaleTimeString();
+      console.log(`Rating submitted at ${local}`);
 
       if (response.status === 201) {
         onRatingSubmit();
@@ -76,8 +82,8 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
         <View style={[styles.modalContent, { backgroundColor: cardBackground }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: textColor }]}>Rate Today's Meal</Text>
-            <TouchableOpacity 
-              style={styles.closeButton} 
+            <TouchableOpacity
+              style={styles.closeButton}
               onPress={onClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -115,10 +121,10 @@ const RatingModal: React.FC<RatingModalProps> = ({ visible, onClose, mealId, stu
               Share your thoughts (optional):
             </Text>
             <TextInput
-              style={[styles.feedbackInput, { 
-                color: textColor, 
-                borderColor, 
-                backgroundColor: backgroundColor 
+              style={[styles.feedbackInput, {
+                color: textColor,
+                borderColor,
+                backgroundColor: backgroundColor
               }]}
               multiline
               numberOfLines={4}
