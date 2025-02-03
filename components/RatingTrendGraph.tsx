@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import Slider from '@react-native-community/slider';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import api from '../api';
-import * as Notifications from 'expo-notifications';
 
 interface RatingTrendGraphProps {
   mealType: string;
   messIds: number[];
   messNames: { [key: number]: string };
+  key?: string;
 }
 
 const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, messNames }) => {
-  const [ratingsData, setRatingsData] = useState<{ [key: string]: number[] }>({});
+  const [ratingsData, setRatingsData] = useState<{ [key: string]: { date: string; averageRating: number }[] }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [previousRatings, setPreviousRatings] = useState<{ [key: string]: number }>({});
+  const [daysCnt, setDaysCnt] = useState(10);
+  const [sliderValue, setSliderValue] = useState(10);
 
   const { color: textColor } = useThemeColor({}, 'text');
   const { color: backgroundColor } = useThemeColor({}, 'background');
@@ -31,70 +33,109 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
     '#FF6347', // Tomato
   ];
 
-  useEffect(() => {
-    const fetchRatings = async () => {
-      try {
-        const data: { [key: string]: number[] } = {};
-  
-        // Use Promise.allSettled to handle both successful and failed requests
-        const results = await Promise.allSettled(
-          messIds.map(async (messId) => {
-            try {
-              const response = await api.get('/ratings/getRatingsByMealAndMess', {
-                params: {
-                  mess_id: messId,
-                  meal_type: mealType,
-                  days: 10,
-                },
-              });
-  
-              if (response.data.averageRatings.length > 0) {
-                data[messId.toString()] = response.data.averageRatings.map(
-                  (item: { date: string; averageRating: number }) => item.averageRating
-                );
-              }
-            } catch (error) {
-              console.error(`Failed to fetch ratings for mess ${messId}:`, error);
+  const fetchRatings = async (days: number) => {
+    try {
+      setLoading(true);
+      const data: { [key: string]: { date: string; averageRating: number }[] } = {};
+
+      await Promise.allSettled(
+        messIds.map(async (messId) => {
+          try {
+            const response = await api.get('/ratings/getRatingsByMealAndMess', {
+              params: {
+                mess_id: messId,
+                meal_type: mealType,
+                days: days,
+              },
+            });
+
+            if (response.data.averageRatings.length > 0) {
+              data[messId.toString()] = response.data.averageRatings;
             }
-          })
-        );
-  
-        setRatingsData(data);
-      } catch (error) {
-        console.error('Failed to fetch ratings:', error);
-        setError('Failed to fetch ratings. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-  
-    fetchRatings();
-  }, [mealType, messIds]);
+          } catch (error) {
+            console.error(`Failed to fetch ratings for mess ${messId}:`, error);
+          }
+        })
+      );
+
+      setRatingsData(data);
+    } catch (error) {
+      console.error('Failed to fetch ratings:', error);
+      setError('Failed to fetch ratings. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRatings(daysCnt);
+  }, [mealType, messIds, daysCnt]);
+
+  // Auto-reload every 1 minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchRatings(daysCnt);
+    }, 60000); // 1 minute in milliseconds
+
+    return () => clearInterval(interval); // Cleanup interval on unmount
+  }, [mealType, messIds, daysCnt]);
 
   if (loading) {
-    return <Text style={[styles.loadingText, { color: textColor }]}>Loading...</Text>;
+    return (
+      <View style={[styles.container, { backgroundColor }]}>
+        <ActivityIndicator size="large" color={tintColor} />
+      </View>
+    );
   }
 
   if (error) {
-    return <Text style={[styles.errorText, { color: 'red' }]}>{error}</Text>;
+    return (
+      <View style={[styles.container, { backgroundColor }]}>
+        <Text style={[styles.errorText, { color: 'red' }]}>{error}</Text>
+      </View>
+    );
   }
 
-  const labels = Array.from({ length: 10 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (9 - i));
-    return `${date.getDate()}`;
-  });
+  // Prepare dates for the chart (last X days)
+  const generateDateRange = (days: number) => {
+    const dates = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      dates.push(date.toLocaleDateString('en-CA'));
+    }
+    return dates;
+  };
 
+  const chartDates = generateDateRange(daysCnt);
+
+  // Prepare datasets with precise date matching
   const datasets = messIds
     .filter((messId) => ratingsData[messId.toString()] && ratingsData[messId.toString()].length > 0)
-    .map((messId, index) => ({
-      data: ratingsData[messId.toString()],
-      color: (opacity = 1) => colors[index % colors.length],
-      strokeWidth: 2,
-    }));
+    .map((messId, index) => {
+      const ratings = ratingsData[messId.toString()];
+      
+      const dataForChart = chartDates.map((date) => {
+        const ratingForDate = ratings.find((r) => r.date === date);
+        return ratingForDate ? ratingForDate.averageRating : 0;
+      });
+
+      return {
+        data: dataForChart,
+        color: (opacity = 1) => colors[index % colors.length],
+        strokeWidth: 2,
+      };
+    });
+
+  // Generate labels for the chart (just days)
+  const labels = chartDates.map(date => new Date(date).getDate().toString());
 
   if (datasets.length === 0) {
-    return <Text style={[styles.noDataText, { color: textColor }]}>No data available for {mealType}.</Text>;
+    return (
+      <View style={[styles.container, { backgroundColor }]}>
+        <Text style={[styles.noDataText, { color: textColor }]}>No data available for {mealType}.</Text>
+      </View>
+    );
   }
 
   return (
@@ -116,11 +157,26 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
           labelColor: () => textColor,
           style: { borderRadius: 16 },
           propsForDots: { r: '4', strokeWidth: '1', stroke: '#fff' },
-          propsForBackgroundLines: { stroke: 'rgba(255, 255, 255, 0.2)' },
+          propsForBackgroundLines: { stroke: 'rgba(112, 112, 112, 0.34)' },
         }}
         bezier
         style={{ marginVertical: 8, borderRadius: 16, alignSelf: 'center' }}
       />
+      <View style={styles.sliderContainer}>
+        <Text style={[styles.sliderLabel, { color: textColor }]}>Days: {sliderValue}</Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={3}
+          maximumValue={12}
+          step={1}
+          value={sliderValue}
+          onValueChange={(value) => setSliderValue(value)}
+          onSlidingComplete={(value) => setDaysCnt(Math.round(value))}
+          minimumTrackTintColor={tintColor}
+          maximumTrackTintColor={textColor}
+          thumbTintColor={tintColor}
+        />
+      </View>
       <View style={styles.legendContainer}>
         {messIds
           .filter((messId) => ratingsData[messId.toString()] && ratingsData[messId.toString()].length > 0)
@@ -128,7 +184,7 @@ const RatingTrendGraph: React.FC<RatingTrendGraphProps> = ({ mealType, messIds, 
             <View key={messId} style={styles.legendItem}>
               <View style={[styles.legendColor, { backgroundColor: colors[index % colors.length] }]} />
               <Text style={[styles.legendText, { color: textColor }]}>
-                {messNames[messId-2] || `Mess ${messId}`}
+                {messNames[messId - 2] || `Mess ${messId}`}
               </Text>
             </View>
           ))}
@@ -143,15 +199,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     elevation: 5,
+    alignItems: 'center',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
-    textAlign: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
     textAlign: 'center',
   },
   errorText: {
@@ -161,6 +214,18 @@ const styles = StyleSheet.create({
   noDataText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  sliderContainer: {
+    width: '90%',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  slider: {
+    width: '100%',
   },
   legendContainer: {
     flexDirection: 'row',

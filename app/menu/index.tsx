@@ -32,15 +32,33 @@ const MenuScreen = () => {
   const [userEmail, setUserEmail] = useState('');
   const [studentId, setStudentId] = useState<number | null>(null);
   const [mealId, setMealId] = useState<number | null>(null);
+  const [refreshGraph, setRefreshGraph] = useState(false);
+  const [messIds, setMessIds] = useState<number[]>([]);
+  const [messNames, setMessNames] = useState<string[]>([]);
   // Add new state for notification permissions
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const adminEmails = ['anish_2301mc40@iitp.ac.in', 'Jatin_2301ec12@iitp.ac.in'];
   const crEmails = ['cr1@example.com', 'cr2@example.com'];
+  // In the React Native component (MenuScreen)
+  useEffect(() => {
+    const fetchMessData = async () => {
+      try {
+        const response = await api.get('/mess/all');
+        // Filter out mess ID 1
+        const filteredMesses = response.data.filter((mess: { mess_id: number }) => mess.mess_id !== 1);
+        const messIds = filteredMesses.map((mess: { mess_id: number }) => mess.mess_id);
+        const messNames = filteredMesses.map((mess: { mess_name: string }) => mess.mess_name);
+        setMessIds(messIds);
+        setMessNames(messNames);
+      } catch (error) {
+        console.error('Failed to fetch mess data:', error);
+        // Optionally set a fallback or show an error
+      }
+    };
 
-  const messIds = [2,3,4,5,6,7]; // Replace with actual mess IDs
-  const messNames = ['CV Raman', 'Asima', 'Kalam 3', 'Kalam 4', 'Aryabhatta 5', 'Aryabhatta 6']; // Replace with actual mess names
-
+    fetchMessData();
+  }, []);
   // Theme colors
   const { color: backgroundColor, theme, toggleTheme } = useThemeColor({}, 'background');
   const { color: textColor } = useThemeColor({}, 'text');
@@ -291,6 +309,7 @@ const MenuScreen = () => {
       }
 
       setFullMenu(fullMenuData);
+      setRefreshGraph(prev => !prev); // Toggle the refresh state
     } catch (error) {
       console.error('Failed to fetch menu:', error);
       setError('Failed to fetch menu. Please try again.');
@@ -313,7 +332,15 @@ const MenuScreen = () => {
     const minutes = now.getMinutes();
     const currentDay = getCurrentDay();
 
+    // Function to get the next day
+    const getNextDay = () => {
+      const nextDay = new Date(now);
+      nextDay.setDate(now.getDate() + 1);
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return days[nextDay.getDay()];
+    };
 
+    // Check for current meal
     if (hours >= 7 && hours < 10 && (hours !== 7 || minutes >= 30)) {
       return { meal: 'breakfast', day: currentDay };
     } else if (hours >= 12 && hours < 14 && (hours !== 12 || minutes >= 30)) {
@@ -323,22 +350,24 @@ const MenuScreen = () => {
     } else if (hours >= 20 && hours < 22) {
       return { meal: 'dinner', day: currentDay };
     } else {
-      // Outside meal hours, show the next meal
-      if (hours >= 14 && hours < 18) {
+      // Outside meal hours, determine the next meal
+      if (hours < 7 || (hours === 22 && minutes >= 0) || hours >= 23) {
+        // Before 7:00 AM or after 10:00 PM, next meal is breakfast
+        return { meal: 'breakfast', day: hours >= 22 ? getNextDay() : currentDay };
+      } else if ((hours >= 10 && hours < 12) || (hours === 12 && minutes < 30)) {
+        // Between 10:00 AM and 12:30 PM, next meal is lunch
+        return { meal: 'lunch', day: currentDay };
+      } else if ((hours >= 14 && hours < 16) || (hours === 16 && minutes < 45)) {
+        // Between 2:00 PM and 4:45 PM, next meal is snacks
         return { meal: 'snacks', day: currentDay };
-      } else if (hours >= 18 && hours < 20) {
+      } else if ((hours >= 18 && hours < 20) || (hours === 20 && minutes < 0)) {
+        // Between 6:00 PM and 8:00 PM, next meal is dinner
         return { meal: 'dinner', day: currentDay };
-      } else if (hours >= 0 && hours < 7) {
-        return { meal: 'breakfast', day: currentDay };
-      } else if (hours >= 22 && hours < 24) {
-        const nextDay = new Date(now);
-        nextDay.setDate(now.getDate() + 1);
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const nextDayName = days[nextDay.getDay()];
-        return { meal: 'breakfast', day: nextDayName };
       }
     }
-    return { meal: 'breakfast', day: currentDay }; // Default
+
+    // Default return (should not be reached)
+    return { meal: 'breakfast', day: currentDay };
   };
 
   const openModal = () => setIsModalVisible(true);
@@ -384,7 +413,12 @@ const MenuScreen = () => {
           )}
 
           {/* Rating Trend Graph */}
-          <RatingTrendGraph mealType={currentMeal} messIds={messIds} messNames={messNames} />
+          <RatingTrendGraph
+            mealType={currentMeal}
+            messIds={messIds}
+            messNames={messNames}
+            key={refreshGraph ? 'refresh' : 'no-refresh'} // Add a key to force re-render
+          />
 
           {/* See Full Mess Menu Button */}
           <TouchableOpacity style={[styles.fullMenuButton, { backgroundColor: tintColor }]} onPress={openModal}>

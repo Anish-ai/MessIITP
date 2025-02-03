@@ -15,6 +15,9 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mess_id, setMessId] = useState(2);
+  
+  // New state for mess names
+  const [messOptions, setMessOptions] = useState<{id: number, name: string}[]>([]);
 
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isRollNoFocused, setIsRollNoFocused] = useState(false);
@@ -28,6 +31,34 @@ export default function SignupScreen() {
   const { color: cardBackground } = useThemeColor({}, 'cardBackground');
   const { color: borderColor } = useThemeColor({}, 'border');
   const { color: unfocusedColor } = useThemeColor({}, 'unfocused');
+
+  // Fetch mess options on component mount
+  useEffect(() => {
+    const fetchMessOptions = async () => {
+      try {
+        const response = await api.get('/mess/all');
+        // Filter mess options from ID 2 to 7
+        const filteredMesses = response.data
+          .filter((mess: {mess_id: number}) => mess.mess_id >= 2 && mess.mess_id <= 7)
+          .map((mess: {mess_id: number, mess_name: string}) => ({
+            id: mess.mess_id,
+            name: mess.mess_name
+          }));
+        
+        setMessOptions(filteredMesses);
+        
+        // Set default mess_id to the first available mess
+        if (filteredMesses.length > 0) {
+          setMessId(filteredMesses[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch mess options:', error);
+        Alert.alert('Error', 'Failed to load mess options');
+      }
+    };
+
+    fetchMessOptions();
+  }, []);
 
   // Request notification permissions on component mount
   useEffect(() => {
@@ -176,30 +207,32 @@ export default function SignupScreen() {
         </View>
 
         <View
-          style={[
-            styles.pickerContainer,
-            {
-              borderColor: isPickerFocused ? tintColor : unfocusedColor,
-            },
-          ]}
+        style={[
+          styles.pickerContainer,
+          {
+            borderColor: isPickerFocused ? tintColor : unfocusedColor,
+          },
+        ]}
+      >
+        <Picker
+          selectedValue={mess_id}
+          onValueChange={(itemValue) => setMessId(itemValue)}
+          style={{ color: textColor }}
+          onFocus={() => setIsPickerFocused(true)}
+          onBlur={() => setIsPickerFocused(false)}
+          dropdownIconColor={tintColor}
+          mode="dropdown"
         >
-          <Picker
-            selectedValue={mess_id}
-            onValueChange={(itemValue) => setMessId(itemValue)}
-            style={{ color: textColor }}
-            onFocus={() => setIsPickerFocused(true)}
-            onBlur={() => setIsPickerFocused(false)}
-            dropdownIconColor={tintColor}
-            mode="dropdown"
-          >
-            <Picker.Item label="CV Raman" value={2} style={{ color: textColor, backgroundColor }} />
-            <Picker.Item label="Asima" value={3} style={{ color: textColor, backgroundColor }} />
-            <Picker.Item label="Kalam Mess 3" value={4} style={{ color: textColor, backgroundColor }} />
-            <Picker.Item label="Kalam Mess 4" value={5} style={{ color: textColor, backgroundColor }} />
-            <Picker.Item label="Aryabhatta Mess 5" value={6} style={{ color: textColor, backgroundColor }} />
-            <Picker.Item label="Aryabhatta Mess 6" value={7} style={{ color: textColor, backgroundColor }} />
-          </Picker>
-        </View>
+          {messOptions.map((mess) => (
+            <Picker.Item 
+              key={mess.id} 
+              label={mess.name} 
+              value={mess.id} 
+              style={{ color: textColor, backgroundColor }} 
+            />
+          ))}
+        </Picker>
+      </View>
 
         <TouchableOpacity style={[styles.button, { backgroundColor: tintColor }]} onPress={handleSignup}>
           <Text style={styles.buttonText}>Sign Up</Text>
