@@ -20,6 +20,12 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Add this helper function to get day string from date
+const getDayString = (date: Date) => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[date.getDay()];
+};
+
 const MenuScreen = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentDay, setCurrentDay] = useState('Monday');
@@ -35,12 +41,25 @@ const MenuScreen = () => {
   const [refreshGraph, setRefreshGraph] = useState(false);
   const [messIds, setMessIds] = useState<number[]>([]);
   const [messNames, setMessNames] = useState<string[]>([]);
+  const [userRole, setUserRole] = useState<'owner' | 'admin' | 'cr' | 'user'>('user'); // Add userRole state
   // Add new state for notification permissions
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const adminEmails = ['anish_2301mc40@iitp.ac.in', 'Jatin_2301ec12@iitp.ac.in'];
   const crEmails = ['cr1@example.com', 'cr2@example.com'];
-  // In the React Native component (MenuScreen)
+
+  // New function to store menu in AsyncStorage
+  const storeMenuInStorage = async (menu: any) => {
+    try {
+      const today = new Date().toLocaleDateString('en-CA'); // 'en-CA' format is YYYY-MM-DD
+      console.log('Storing menu for', today);
+      console.log('Menu:', menu);
+      await AsyncStorage.setItem(`@menu-${today}`, JSON.stringify(menu));
+    } catch (e) {
+      console.error('Failed to save menu to storage:', e);
+    }
+  };
+
   useEffect(() => {
     const fetchMessData = async () => {
       try {
@@ -66,6 +85,25 @@ const MenuScreen = () => {
   const { color: cardBackground } = useThemeColor({}, 'cardBackground');
   const { color: borderColor } = useThemeColor({}, 'border');
 
+  // Fetch user role from the database
+  const fetchUserRole = async (email: string) => {
+    try {
+      const response = await api.get(`/roles?email=${email}`);
+      console.log('User role:', response.data); // Log the full response
+
+      if (response.data && response.data.length > 0) {
+        const userRole = response.data[0].role; // Access the first element
+        setUserRole(userRole);
+      } else {
+        console.log('No role found for the user');
+        setUserRole('user'); // Default to 'user' if no role is found
+      }
+    } catch (error) {
+      console.error('Failed to fetch user role:', error);
+      setUserRole('user'); // Default to 'user' in case of error
+    }
+  };
+
   // Fetch student details
   useEffect(() => {
     const fetchStudentDetails = async () => {
@@ -78,6 +116,7 @@ const MenuScreen = () => {
           setMessId(student.mess_id);
           setUserEmail(student.email);
           setStudentId(student.student_id);
+          await fetchUserRole(student.email);
           const { meal, day } = getCurrentMeal();
           setCurrentDay(day);
           setCurrentMeal(meal);
@@ -102,6 +141,50 @@ const MenuScreen = () => {
 
     fetchStudentDetails();
   }, []);
+
+  const fetchFullMenuForAllDays = async (messId: number) => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const mealTypes = ['breakfast', 'lunch', 'snacks', 'dinner'];
+  
+    try {
+      for (const day of days) {
+        const fullMenuData: { [key: string]: { dish_name: string; type: string }[] } = {};
+  
+        for (const mealType of mealTypes) {
+          const mealsResponse = await api.get('/meals', {
+            params: { mess_id: messId, day: day, meal_type: mealType },
+          });
+  
+          if (mealsResponse.data.length > 0) {
+            const mealId = mealsResponse.data[0].meal_id;
+            const dishesResponse = await api.get('/meal-dishes', {
+              params: { meal_id: mealId },
+            });
+            fullMenuData[mealType] = dishesResponse.data;
+          } else {
+            fullMenuData[mealType] = [];
+          }
+        }
+  
+        // Store the menu for the day in AsyncStorage
+        await storeMenuInStorageForDay(day, fullMenuData);
+      }
+  
+      console.log('Full menu for all days fetched and stored successfully.');
+    } catch (error) {
+      console.error('Failed to fetch full menu for all days:', error);
+    }
+  };
+  
+  const storeMenuInStorageForDay = async (day: string, menu: any) => {
+    try {
+      await AsyncStorage.setItem(`@menu-${day}`, JSON.stringify(menu));
+      console.log(`Menu for ${day}: ${JSON.stringify(menu)}`);
+      console.log(`Menu for ${day} stored successfully.`);
+    } catch (e) {
+      console.error(`Failed to save menu for ${day} to storage:`, e);
+    }
+  };
 
   const handleMealChange = async () => {
     const studentId = await AsyncStorage.getItem('student_id');
@@ -139,6 +222,7 @@ const MenuScreen = () => {
 
         setUserEmail(student.email);
         setStudentId(student.student_id);
+        await fetchUserRole(student.email);
 
         const { meal, day } = getCurrentMeal();
         console.log('meal:', meal);
@@ -189,11 +273,25 @@ const MenuScreen = () => {
   // Use useFocusEffect to refresh student details when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchStudentDetails();
-      fetchMenu();
-    }, [])
+      const refreshData = async () => {
+        await fetchStudentDetails();
+        await fetchMenu();
+        await scheduleMealNotifications();
+      };
+      refreshData();
+    }, [messId])
   );
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchStudentDetails();
+      if (messId) {
+        await fetchFullMenuForAllDays(messId); // Fetch and store full menu for all days
+        await scheduleMealNotifications();
+      }
+    };
+    fetchData();
+  }, [messId]);
   // Modify the existing useEffect to remove the initial fetch
   useEffect(() => {
     // If you want to keep any initial setup, add it here
@@ -204,76 +302,93 @@ const MenuScreen = () => {
     const requestPermissions = async () => {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Notifications are disabled. Please enable them in settings.');
+        Alert.alert('Permission required', 'Notifications are disabled. Please enable them in settings. This will allow us to remind you about meal times and menu.');
       }
     };
 
     requestPermissions();
   }, []);
 
-  // Schedule notifications for meal times
+  // Modified notification scheduling function
   const scheduleMealNotifications = async () => {
-    // Cancel all existing notifications
     await Notifications.cancelAllScheduledNotificationsAsync();
-
+  
     const mealTimes = [
       { meal: 'breakfast', hour: 7, minute: 25 },
       { meal: 'lunch', hour: 12, minute: 25 },
       { meal: 'snacks', hour: 16, minute: 40 },
       { meal: 'dinner', hour: 19, minute: 55 },
     ];
-
+  
     const now = new Date();
-
+  
     for (const { meal, hour, minute } of mealTimes) {
-      // Calculate the next occurrence of the meal time
-      const triggerDate = new Date(now);
-      triggerDate.setHours(hour, minute, 0, 0);
-
-      // If the meal time has already passed today, schedule for the next day
-      if (triggerDate <= now) {
-        triggerDate.setDate(triggerDate.getDate() + 1);
+      try {
+        const triggerDate = new Date(now);
+        triggerDate.setHours(hour, minute, 0, 0);
+  
+        // Determine notification day (today or tomorrow)
+        const isTomorrow = triggerDate <= now;
+        const notificationDate = new Date(triggerDate);
+        if (isTomorrow) notificationDate.setDate(notificationDate.getDate() + 1);
+  
+        // Get the day string for the notification day
+        const notificationDay = getDayString(isTomorrow ? notificationDate : triggerDate);
+  
+        // Retrieve the menu for the notification day from AsyncStorage
+        const storedMenu = await AsyncStorage.getItem(`@menu-${notificationDay}`);
+        console.log('Stored menu:', storedMenu);
+  
+        let menuText = "Menu not available";
+        if (storedMenu) {
+          const menuData = JSON.parse(storedMenu);
+          menuText = menuData[meal]?.map((dish: any) => dish.dish_name).join(', ') || "No dishes listed";
+        }
+  
+        // Schedule notification
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `It's ${meal} time in 5 minutes!`,
+            body: `Today's menu: ${menuText}`,
+            sound: true,
+          },
+          trigger: {
+            date: isTomorrow ? notificationDate : triggerDate,
+            type: Notifications.SchedulableTriggerInputTypes.DATE
+          },
+        });
+      } catch (error) {
+        console.error(`Failed to schedule ${meal} notification:`, error);
       }
-
-      // Fetch the menu for the meal
-      const menu = fullMenu[meal] || [];
-      const menuText = menu.map((dish) => dish.dish_name).join(', ');
-
-      // Schedule the notification
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `It's ${meal} time in 5 minutes!`,
-          body: `Today's menu: ${menuText}`,
-          sound: true,
-        },
-        trigger: {
-          date: triggerDate,
-          type: Notifications.SchedulableTriggerInputTypes.DATE // One-time trigger
-        },
-      });
     }
   };
 
+  // Redirect to the appropriate settings page based on user role
   const handleSettingsPress = () => {
     if (!studentId) {
       Alert.alert('Error', 'Student ID not found.');
       return;
     }
 
-    if (adminEmails.includes(userEmail)) {
+    if (userRole === 'owner') {
+      router.push({
+        pathname: '/settings/OwnerSettings',
+        params: { student_id: studentId },
+      });
+    } else if (userRole === 'admin') {
       router.push({
         pathname: '/settings/AdminSettings',
-        params: { student_id: studentId }, // Pass student_id as a parameter
+        params: { student_id: studentId },
       });
-    } else if (crEmails.includes(userEmail)) {
+    } else if (userRole === 'cr') {
       router.push({
         pathname: '/settings/CRSettings',
-        params: { student_id: studentId }, // Pass student_id as a parameter
+        params: { student_id: studentId },
       });
     } else {
       router.push({
         pathname: '/settings/UserSettings',
-        params: { student_id: studentId }, // Pass student_id as a parameter
+        params: { student_id: studentId },
       });
     }
   };
@@ -309,6 +424,7 @@ const MenuScreen = () => {
       }
 
       setFullMenu(fullMenuData);
+      await storeMenuInStorage(fullMenuData); // Store in AsyncStorage
       setRefreshGraph(prev => !prev); // Toggle the refresh state
     } catch (error) {
       console.error('Failed to fetch menu:', error);

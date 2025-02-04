@@ -122,4 +122,21 @@ const getRatingsByMealAndMess = async (req, res) => {
     }
 };
 
+const numOfRatings = async (req, res) => {
+    const { meal_id } = req.query;
+
+    try {
+        const [ratings] = await db.query(
+            'SELECT rating_score FROM rating WHERE meal_id = ?', [meal_id]);
+        if (ratings.length === 0) {
+            return res.status(404).json({ error: 'No ratings found' });
+        }
+        const totalRatings = ratings.length;
+
+        res.json({ totalRatings });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+}
+
 module.exports = { submitRating, getRatingsByMeal, getRatingByMealAndDate, getRatingsByMealAndMess };

@@ -116,7 +116,7 @@ const AdminSettings = () => {
         {/* Admin Actions Card */}
         <View style={[styles.card, { backgroundColor: cardBackground, borderColor }]}>
           <Text style={[styles.cardTitle, { color: textColor }]}>CR Actions</Text>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: tintColor }]}
             onPress={openChangeMessModal}

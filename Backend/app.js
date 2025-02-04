@@ -8,6 +8,7 @@ const messRoutes = require('./routes/messRoutes');
 const dishRoutes = require('./routes/dishRoutes');
 const mealRoutes = require('./routes/mealRoutes');
 const mealDishesRoutes = require('./routes/mealDishesRoutes');
+const rolesRoutes = require('./routes/rolesRoutes');
 
 const app = express();
 
@@ -21,7 +22,7 @@ console.log('PORT:', process.env.PORT);
 
 // Middleware
 app.use(cors({
-    origin: ['http://192.168.137.115:19006', 'http://localhost:19006','http://10.16.3.240:19006'], // Add more origins as needed
+    origin: ['http://10.16.2.60:19006', 'http://localhost:19006','http://10.16.3.240:19006'], // Add more origins as needed
     credentials: true,
 }));
 app.use(express.json());
@@ -37,6 +38,7 @@ app.use('/api/mess', messRoutes);
 app.use('/api/dishes', dishRoutes);
 app.use('/api/meals', mealRoutes);
 app.use('/api/meal-dishes', mealDishesRoutes);
+app.use('/api/roles', rolesRoutes);
 
 // Error-handling middleware
 app.use((err, req, res, next) => {

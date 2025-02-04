@@ -42,15 +42,17 @@ const NormalUserSettings = () => {
         // Fetch student info
         const studentResponse = await api.get(`/students/${student_id}`);
         setStudentInfo(studentResponse.data);
-
+  
         // Fetch all messes
-        const messesResponse = await api.get('/messes');
+        const messesResponse = await api.get('/mess/all'); // Use the same endpoint as Admin Settings
         setMesses(messesResponse.data);
-
+  
         // Find the mess name using mess_id
         if (studentResponse.data.mess_id) {
           const mess = messesResponse.data.find((m: Mess) => m.mess_id === studentResponse.data.mess_id);
           setMessName(mess ? mess.mess_name : 'Not assigned');
+        } else {
+          setMessName('Not assigned');
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -59,7 +61,7 @@ const NormalUserSettings = () => {
         setIsLoading(false); // Stop loading after fetching data
       }
     };
-
+  
     fetchData();
   }, [student_id]);
 
@@ -102,8 +104,6 @@ const NormalUserSettings = () => {
             <Text style={[styles.cardTitle, { color: textColor }]}>Student Profile</Text>
             <InfoItem label="Name" value={studentInfo.name} />
             <InfoItem label="Email" value={studentInfo.email} />
-            <InfoItem label="Registration" value={studentInfo.registration_number} />
-            <InfoItem label="Phone" value={studentInfo.phone || 'Not provided'} />
             <InfoItem label="Mess" value={messName || 'Not assigned'} />
           </View>
         )}
