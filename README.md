@@ -33,10 +33,10 @@ MessIITP is a comprehensive mobile application designed to enhance the mess syst
 
 ## Technology Stack
 
-- **Frontend**: [Your chosen frontend framework/library]
-- **Backend**: [Your chosen backend framework]
-- **Database**: MySQL
-- **Authentication**: [Your chosen auth method]
+- **Frontend**: Expo (React Native), React Navigation, NativeBase/React Native Paper
+- **Backend**: Node.js, JWT, MySQL
+- **Analytics**: Chart.js
+- **Deployment**: ExpoEAS, phpMyAdmin, Render
 
 ## Database Structure
 
@@ -66,27 +66,3 @@ Relationships between these tables are implemented using SQL to ensure data inte
 - Access system-wide settings.
 - Modify menus for all messes.
 - View comprehensive analytics and reports.
-
-## Contributing
-
-We welcome contributions to MessIITP! Please follow these steps to contribute:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-## Contact
-
-Your Name - your.email@example.com
-
-Project Link: [https://github.com/yourusername/MessIITP](https://github.com/yourusername/MessIITP)
-
-## Acknowledgements
-
-- *Tech Used: *React Native, Expo, JWT, MySQL, Node.js, Render
